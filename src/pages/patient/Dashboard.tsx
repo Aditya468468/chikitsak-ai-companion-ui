@@ -6,12 +6,30 @@ import { ActionButton } from "@/components/ui/ActionButton";
 import { Link } from "react-router-dom";
 import { Heart, Stethoscope, MessagesSquare, ShieldAlert, LifeBuoy, Plus } from "lucide-react";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { useState, useEffect } from "react";
 
 export default function PatientDashboard() {
   // Use authentication hook to ensure user is logged in
-  useRequireAuth("patient");
+  const { user, isAuthenticated } = useRequireAuth("patient");
+  const [loading, setLoading] = useState(true);
   
-  const userName = "Alex Johnson"; // In a real app, this would come from authentication
+  // Get user name from metadata if available
+  const firstName = user?.user_metadata?.first_name || "Patient";
+  const lastName = user?.user_metadata?.last_name || "";
+  const userName = `${firstName} ${lastName}`.trim();
+  
+  useEffect(() => {
+    // Once authentication is confirmed, remove loading state
+    if (isAuthenticated !== null) {
+      setLoading(false);
+    }
+  }, [isAuthenticated]);
+  
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+    </div>;
+  }
   
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -30,46 +48,46 @@ export default function PatientDashboard() {
             <section className="mb-10">
               <h2 className="text-2xl font-semibold mb-4">Quick Actions</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                <ActionButton 
-                  icon={<Stethoscope />}
-                  label="Check Symptoms"
-                  colorClass="bg-health-lightblue/30 hover:bg-health-lightblue/40 text-primary border-none"
-                >
-                  <Link to="/patient/symptom-checker">Check Symptoms</Link>
-                </ActionButton>
+                <Link to="/patient/symptom-checker">
+                  <ActionButton 
+                    icon={<Stethoscope />}
+                    label="Check Symptoms"
+                    colorClass="bg-health-lightblue/30 hover:bg-health-lightblue/40 text-primary border-none"
+                  />
+                </Link>
                 
-                <ActionButton 
-                  icon={<ShieldAlert />}
-                  label="Emergency"
-                  variant="destructive"
-                  colorClass="bg-destructive/90 hover:bg-destructive"
-                >
-                  <Link to="/patient/emergency">Emergency</Link>
-                </ActionButton>
+                <Link to="/patient/emergency">
+                  <ActionButton 
+                    icon={<ShieldAlert />}
+                    label="Emergency"
+                    variant="destructive"
+                    colorClass="bg-destructive/90 hover:bg-destructive"
+                  />
+                </Link>
                 
-                <ActionButton 
-                  icon={<Heart />}
-                  label="Mental Health"
-                  colorClass="bg-health-pink/30 hover:bg-health-pink/40 text-primary border-none"
-                >
-                  <Link to="/patient/mental-health">Mental Health</Link>
-                </ActionButton>
+                <Link to="/patient/mental-health">
+                  <ActionButton 
+                    icon={<Heart />}
+                    label="Mental Health"
+                    colorClass="bg-health-pink/30 hover:bg-health-pink/40 text-primary border-none"
+                  />
+                </Link>
                 
-                <ActionButton 
-                  icon={<LifeBuoy />}
-                  label="First Aid"
-                  colorClass="bg-health-peach/30 hover:bg-health-peach/40 text-primary border-none"
-                >
-                  <Link to="/patient/first-aid">First Aid</Link>
-                </ActionButton>
+                <Link to="/patient/first-aid">
+                  <ActionButton 
+                    icon={<LifeBuoy />}
+                    label="First Aid"
+                    colorClass="bg-health-peach/30 hover:bg-health-peach/40 text-primary border-none"
+                  />
+                </Link>
                 
-                <ActionButton 
-                  icon={<MessagesSquare />}
-                  label="Video Consult"
-                  colorClass="bg-health-purple/30 hover:bg-health-purple/40 text-primary border-none"
-                >
-                  <Link to="/patient/consult">Video Consult</Link>
-                </ActionButton>
+                <Link to="/patient/consult">
+                  <ActionButton 
+                    icon={<MessagesSquare />}
+                    label="Video Consult"
+                    colorClass="bg-health-purple/30 hover:bg-health-purple/40 text-primary border-none"
+                  />
+                </Link>
               </div>
             </section>
             

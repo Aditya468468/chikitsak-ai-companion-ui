@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
@@ -9,16 +9,29 @@ import { Camera, Mic, Phone, User2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 export default function VideoConsult() {
-  useRequireAuth("patient");
+  const { isAuthenticated } = useRequireAuth("patient");
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [isMicOn, setIsMicOn] = useState(false);
-
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    if (isAuthenticated !== null) {
+      setLoading(false);
+    }
+  }, [isAuthenticated]);
+  
   const startConsultation = () => {
     toast({
       title: "Starting Consultation",
       description: "Connecting to your healthcare provider...",
     });
   };
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+    </div>;
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">

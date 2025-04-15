@@ -1,8 +1,7 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 
 interface AuthContextType {
@@ -19,6 +18,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     // Set up auth state listener
@@ -28,10 +28,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
 
       if (event === 'SIGNED_IN') {
-        // Redirect based on user role
-        if (session?.user) {
+        // Only redirect if we're on a non-protected route
+        if (location.pathname === '/' || location.pathname === '/login' || location.pathname === '/signup') {
           // Get user metadata from the session
-          const userRole = session.user.user_metadata?.role || 'patient';
+          const userRole = session?.user?.user_metadata?.role || 'patient';
           console.log("User signed in with role:", userRole);
           
           if (userRole === 'doctor') {
@@ -53,7 +53,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       
-      if (session?.user) {
+      // Only redirect if we're on a non-protected route
+      if (session?.user && (location.pathname === '/' || location.pathname === '/login' || location.pathname === '/signup')) {
         const userRole = session.user.user_metadata?.role || 'patient';
         console.log("User already signed in with role:", userRole);
         
@@ -68,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate, location.pathname]);
 
   const signUp = async (email: string, password: string, metadata: { first_name: string; last_name: string; role: string }) => {
     try {

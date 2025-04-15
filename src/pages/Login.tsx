@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,7 +11,7 @@ import { SignupForm } from "@/components/auth/SignupForm";
 export default function Login() {
   const location = useLocation();
   const { toast } = useToast();
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, user } = useAuth();
   
   // Check for tab param in URL or default to login
   const searchParams = new URLSearchParams(location.search);
