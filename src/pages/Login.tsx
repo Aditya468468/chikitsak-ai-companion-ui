@@ -12,12 +12,15 @@ export default function Login() {
   const location = useLocation();
   const { toast } = useToast();
   const { signIn, signUp } = useAuth();
-  const [activeTab, setActiveTab] = useState<string>("login");
-  const [loading, setLoading] = useState(false);
-
-  // Parse role from URL or default to patient
+  
+  // Check for tab param in URL or default to login
   const searchParams = new URLSearchParams(location.search);
+  const defaultTab = searchParams.get("tab") || "login";
+  const [activeTab, setActiveTab] = useState<string>(defaultTab);
+  
+  // Parse role from URL or default to patient
   const role = searchParams.get("role") || "patient";
+  const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     email: '',
@@ -40,13 +43,10 @@ export default function Login() {
     setLoading(true);
     try {
       await signIn(formData.email, formData.password);
+      // AuthContext will handle redirection based on user role
     } catch (error) {
       console.error(error);
-      toast({
-        title: "Login Failed",
-        description: "Please check your credentials and try again.",
-        variant: "destructive"
-      });
+      // Error toast is handled in the auth context
     } finally {
       setLoading(false);
     }
@@ -61,13 +61,11 @@ export default function Login() {
         last_name: formData.lastName,
         role: formData.role,
       });
+      // Show success message (handled in auth context)
+      // We don't redirect here because user might need to verify email
     } catch (error) {
       console.error(error);
-      toast({
-        title: "Signup Failed",
-        description: "An error occurred during signup.",
-        variant: "destructive"
-      });
+      // Error toast is handled in the auth context
     } finally {
       setLoading(false);
     }
@@ -79,7 +77,7 @@ export default function Login() {
       
       <main className="flex-1 flex items-center justify-center py-10 px-4">
         <div className="w-full max-w-md">
-          <Tabs defaultValue="login" value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>

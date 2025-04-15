@@ -23,24 +23,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth state change event:", event);
       setSession(session);
       setUser(session?.user ?? null);
 
       if (event === 'SIGNED_IN') {
         // Redirect based on user role
         if (session?.user) {
-          supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', session.user.id)
-            .single()
-            .then(({ data: profile }) => {
-              if (profile?.role === 'doctor') {
-                navigate('/doctor/dashboard');
-              } else {
-                navigate('/patient/dashboard');
-              }
-            });
+          // Get user metadata from the session
+          const userRole = session.user.user_metadata?.role || 'patient';
+          console.log("User signed in with role:", userRole);
+          
+          if (userRole === 'doctor') {
+            navigate('/doctor/dashboard');
+          } else {
+            navigate('/patient/dashboard');
+          }
         }
       }
 
@@ -51,8 +49,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("Existing session:", session ? "Yes" : "No");
       setSession(session);
       setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        const userRole = session.user.user_metadata?.role || 'patient';
+        console.log("User already signed in with role:", userRole);
+        
+        if (userRole === 'doctor') {
+          navigate('/doctor/dashboard');
+        } else {
+          navigate('/patient/dashboard');
+        }
+      }
     });
 
     return () => {
@@ -61,53 +71,91 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [navigate]);
 
   const signUp = async (email: string, password: string, metadata: { first_name: string; last_name: string; role: string }) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: metadata,
-      },
-    });
-
-    if (error) {
-      toast({
-        title: "Error signing up",
-        description: error.message,
-        variant: "destructive",
+    try {
+      console.log("Signing up with metadata:", metadata);
+      const { error, data } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: metadata,
+        },
       });
+
+      if (error) {
+        toast({
+          title: "Error signing up",
+          description: error.message,
+          variant: "destructive",
+        });
+        throw error;
+      }
+
+      if (data) {
+        console.log("Signup successful:", data);
+        toast({
+          title: "Success",
+          description: "Please check your email to verify your account",
+        });
+      }
+    } catch (error) {
+      console.error("Error during signup:", error);
       throw error;
     }
-
-    toast({
-      title: "Success",
-      description: "Please check your email to verify your account",
-    });
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      toast({
-        title: "Error signing in",
-        description: error.message,
-        variant: "destructive",
+    try {
+      console.log("Attempting to sign in with email:", email);
+      const { error, data } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
+
+      if (error) {
+        console.error("Sign in error:", error);
+        toast({
+          title: "Error signing in",
+          description: error.message,
+          variant: "destructive",
+        });
+        throw error;
+      }
+      
+      if (data) {
+        console.log("Sign in successful:", data.user);
+        toast({
+          title: "Welcome back!",
+          description: `You are now signed in as ${data.user.email}`,
+        });
+      }
+    } catch (error) {
+      console.error("Error during sign in:", error);
       throw error;
     }
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
+    try {
+      console.log("Signing out...");
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error("Sign out error:", error);
+        toast({
+          title: "Error signing out",
+          description: error.message,
+          variant: "destructive",
+        });
+        throw error;
+      }
+      
+      console.log("Sign out successful");
       toast({
-        title: "Error signing out",
-        description: error.message,
-        variant: "destructive",
+        title: "Signed out",
+        description: "You have been successfully signed out",
       });
+    } catch (error) {
+      console.error("Error during sign out:", error);
       throw error;
     }
   };

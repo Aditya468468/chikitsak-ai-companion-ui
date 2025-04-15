@@ -65,7 +65,7 @@ export function GoogleSignInButton() {
           />
         </svg>
       )}
-      {isLoading ? "Signing in..." : "Google"}
+      {isLoading ? "Signing in..." : "Sign in with Google"}
     </Button>
   );
 }
