@@ -26,15 +26,24 @@ export default {
 				foreground: 'hsl(var(--foreground))',
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',
-					foreground: 'hsl(var(--primary-foreground))'
+					foreground: 'hsl(var(--primary-foreground))',
+					light: '#D3E4FD',
 				},
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',
-					foreground: 'hsl(var(--secondary-foreground))'
+					foreground: 'hsl(var(--secondary-foreground))',
 				},
 				destructive: {
 					DEFAULT: 'hsl(var(--destructive))',
-					foreground: 'hsl(var(--destructive-foreground))'
+					foreground: 'hsl(var(--destructive-foreground))',
+				},
+				success: {
+					DEFAULT: 'hsl(var(--success))',
+					foreground: 'hsl(var(--success-foreground))',
+				},
+				warning: {
+					DEFAULT: 'hsl(var(--warning))',
+					foreground: 'hsl(var(--warning-foreground))',
 				},
 				muted: {
 					DEFAULT: 'hsl(var(--muted))',
@@ -51,6 +60,14 @@ export default {
 				card: {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
+				},
+				health: {
+					blue: '#33C3F0',
+					lightblue: '#D3E4FD',
+					purple: '#E5DEFF',
+					pink: '#FFDEE2',
+					peach: '#FDE1D3',
+					softgray: '#F1F0FB',
 				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
