@@ -1,7 +1,7 @@
-import { useAuth } from "@/contexts/AuthContext";
+
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,13 +18,26 @@ export default function Login() {
   const { signIn, signUp } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("login");
   const [loading, setLoading] = useState(false);
+
+  // Parse role from URL or default to patient
+  const searchParams = new URLSearchParams(location.search);
+  const role = searchParams.get("role") || "patient";
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     firstName: '',
     lastName: '',
-    role: params.get("role") || "patient"
+    role: role
   });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [id.replace('signup-', '').replace('login-', '')]: value
+    }));
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,6 +46,11 @@ export default function Login() {
       await signIn(formData.email, formData.password);
     } catch (error) {
       console.error(error);
+      toast({
+        title: "Login Failed",
+        description: "Please check your credentials and try again.",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
@@ -49,6 +67,11 @@ export default function Login() {
       });
     } catch (error) {
       console.error(error);
+      toast({
+        title: "Signup Failed",
+        description: "An error occurred during signup.",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
@@ -77,21 +100,23 @@ export default function Login() {
                 <form onSubmit={handleLogin}>
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
+                      <Label htmlFor="login-email">Email</Label>
                       <div className="relative">
                         <AtSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input 
-                          id="email" 
+                          id="login-email" 
                           placeholder="name@example.com" 
                           type="email" 
                           className="pl-10" 
                           required 
+                          value={formData.email}
+                          onChange={handleInputChange}
                         />
                       </div>
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <Label htmlFor="password">Password</Label>
+                        <Label htmlFor="login-password">Password</Label>
                         <Link 
                           to="/forgot-password" 
                           className="text-sm text-primary hover:underline"
@@ -102,10 +127,12 @@ export default function Login() {
                       <div className="relative">
                         <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input 
-                          id="password" 
+                          id="login-password" 
                           type="password" 
                           className="pl-10" 
                           required 
+                          value={formData.password}
+                          onChange={handleInputChange}
                         />
                       </div>
                     </div>
@@ -177,14 +204,30 @@ export default function Login() {
                 <form onSubmit={handleSignup}>
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="name">Full Name</Label>
+                      <Label htmlFor="signup-firstName">First Name</Label>
                       <div className="relative">
                         <UserRound className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input 
-                          id="name" 
-                          placeholder="John Doe" 
+                          id="signup-firstName" 
+                          placeholder="John" 
                           className="pl-10" 
                           required 
+                          value={formData.firstName}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-lastName">Last Name</Label>
+                      <div className="relative">
+                        <UserRound className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                          id="signup-lastName" 
+                          placeholder="Doe" 
+                          className="pl-10" 
+                          required 
+                          value={formData.lastName}
+                          onChange={handleInputChange}
                         />
                       </div>
                     </div>
@@ -198,6 +241,8 @@ export default function Login() {
                           type="email" 
                           className="pl-10" 
                           required 
+                          value={formData.email}
+                          onChange={handleInputChange}
                         />
                       </div>
                     </div>
@@ -210,15 +255,33 @@ export default function Login() {
                           type="password" 
                           className="pl-10" 
                           required 
+                          value={formData.password}
+                          onChange={handleInputChange}
                         />
                       </div>
                     </div>
                     
                     <div className="flex items-center space-x-2">
-                      <input type="radio" id="role-patient" name="role" value="patient" defaultChecked={role === "patient"} className="rounded-full border-gray-300" />
+                      <input 
+                        type="radio" 
+                        id="role-patient" 
+                        name="role" 
+                        value="patient" 
+                        checked={formData.role === "patient"} 
+                        onChange={() => setFormData(prev => ({...prev, role: "patient"}))} 
+                        className="rounded-full border-gray-300" 
+                      />
                       <label htmlFor="role-patient" className="text-sm text-gray-600">Patient</label>
                       
-                      <input type="radio" id="role-doctor" name="role" value="doctor" defaultChecked={role === "doctor"} className="ml-4 rounded-full border-gray-300" />
+                      <input 
+                        type="radio" 
+                        id="role-doctor" 
+                        name="role" 
+                        value="doctor" 
+                        checked={formData.role === "doctor"} 
+                        onChange={() => setFormData(prev => ({...prev, role: "doctor"}))} 
+                        className="ml-4 rounded-full border-gray-300" 
+                      />
                       <label htmlFor="role-doctor" className="text-sm text-gray-600">Doctor</label>
                     </div>
                     
@@ -237,7 +300,9 @@ export default function Login() {
                     </div>
                   </CardContent>
                   <CardFooter className="flex flex-col">
-                    <Button type="submit" className="w-full">Create Account</Button>
+                    <Button type="submit" className="w-full" disabled={loading}>
+                      {loading ? "Creating Account..." : "Create Account"}
+                    </Button>
                     
                     <div className="mt-4 text-center text-sm">
                       Already have an account?{" "}
