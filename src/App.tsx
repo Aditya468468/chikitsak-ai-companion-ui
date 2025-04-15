@@ -29,6 +29,8 @@ import DoctorProfile from "./pages/doctor/Profile";
 // Shared pages
 import NotificationCenter from "./pages/NotificationCenter";
 
+import { AuthProvider } from "@/contexts/AuthContext";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -37,26 +39,28 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/patient/dashboard" element={<PatientDashboard />} />
-          <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
-          <Route path="/patient/symptom-checker" element={<SymptomChecker />} />
-          <Route path="/patient/mental-health" element={<MentalHealthSupport />} />
-          <Route path="/patient/emergency" element={<Emergency />} />
-          <Route path="/patient/first-aid" element={<FirstAid />} />
-          <Route path="/patient/consult" element={<VideoConsult />} />
-          <Route path="/patient/appointments" element={<BookAppointment />} />
-          <Route path="/patient/analytics" element={<HealthAnalytics />} />
-          <Route path="/patient/profile" element={<PatientProfile />} />
-          <Route path="/doctor/patients" element={<PatientManagement />} />
-          <Route path="/doctor/profile" element={<DoctorProfile />} />
-          <Route path="/notifications" element={<NotificationCenter />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/patient/dashboard" element={<PatientDashboard />} />
+            <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
+            <Route path="/patient/symptom-checker" element={<SymptomChecker />} />
+            <Route path="/patient/mental-health" element={<MentalHealthSupport />} />
+            <Route path="/patient/emergency" element={<Emergency />} />
+            <Route path="/patient/first-aid" element={<FirstAid />} />
+            <Route path="/patient/consult" element={<VideoConsult />} />
+            <Route path="/patient/appointments" element={<BookAppointment />} />
+            <Route path="/patient/analytics" element={<HealthAnalytics />} />
+            <Route path="/patient/profile" element={<PatientProfile />} />
+            <Route path="/doctor/patients" element={<PatientManagement />} />
+            <Route path="/doctor/profile" element={<DoctorProfile />} />
+            <Route path="/notifications" element={<NotificationCenter />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

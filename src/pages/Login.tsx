@@ -1,5 +1,6 @@
-
+import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,44 +15,45 @@ export default function Login() {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signIn, signUp } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("login");
-  
-  // Extract role from query parameters (patient or doctor)
-  const params = new URLSearchParams(location.search);
-  const role = params.get("role") || "patient";
-  
-  const handleLogin = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    firstName: '',
+    lastName: '',
+    role: params.get("role") || "patient"
+  });
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, you would handle auth here
-    toast({
-      title: "Login Successful",
-      description: `Logged in as ${role}`,
-    });
-    
-    // Redirect based on role
-    if (role === "doctor") {
-      navigate("/doctor/dashboard");
-    } else {
-      navigate("/patient/dashboard");
+    setLoading(true);
+    try {
+      await signIn(formData.email, formData.password);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
   
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, you would handle signup here
-    toast({
-      title: "Account Created",
-      description: "Please check your email for verification",
-    });
-    
-    // Redirect based on role
-    if (role === "doctor") {
-      navigate("/doctor/dashboard");
-    } else {
-      navigate("/patient/dashboard");
+    setLoading(true);
+    try {
+      await signUp(formData.email, formData.password, {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        role: formData.role,
+      });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
-  
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
@@ -114,7 +116,9 @@ export default function Login() {
                     </div>
                   </CardContent>
                   <CardFooter className="flex flex-col">
-                    <Button type="submit" className="w-full">Sign In</Button>
+                    <Button type="submit" className="w-full" disabled={loading}>
+                      {loading ? "Loading..." : "Sign In"}
+                    </Button>
                     
                     <div className="mt-4 text-center text-sm">
                       Don't have an account?{" "}
