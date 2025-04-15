@@ -5,8 +5,12 @@ import { HealthSummary, defaultMetrics } from "@/components/ui/HealthSummary";
 import { ActionButton } from "@/components/ui/ActionButton";
 import { Link } from "react-router-dom";
 import { Heart, Stethoscope, MessagesSquare, ShieldAlert, LifeBuoy, Plus } from "lucide-react";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 export default function PatientDashboard() {
+  // Use authentication hook to ensure user is logged in
+  useRequireAuth("patient");
+  
   const userName = "Alex Johnson"; // In a real app, this would come from authentication
   
   return (
@@ -30,9 +34,8 @@ export default function PatientDashboard() {
                   icon={<Stethoscope />}
                   label="Check Symptoms"
                   colorClass="bg-health-lightblue/30 hover:bg-health-lightblue/40 text-primary border-none"
-                  asChild
                 >
-                  <Link to="/patient/symptom-checker" />
+                  <Link to="/patient/symptom-checker">Check Symptoms</Link>
                 </ActionButton>
                 
                 <ActionButton 
@@ -40,36 +43,32 @@ export default function PatientDashboard() {
                   label="Emergency"
                   variant="destructive"
                   colorClass="bg-destructive/90 hover:bg-destructive"
-                  asChild
                 >
-                  <Link to="/patient/emergency" />
+                  <Link to="/patient/emergency">Emergency</Link>
                 </ActionButton>
                 
                 <ActionButton 
                   icon={<Heart />}
                   label="Mental Health"
                   colorClass="bg-health-pink/30 hover:bg-health-pink/40 text-primary border-none"
-                  asChild
                 >
-                  <Link to="/patient/mental-health" />
+                  <Link to="/patient/mental-health">Mental Health</Link>
                 </ActionButton>
                 
                 <ActionButton 
                   icon={<LifeBuoy />}
                   label="First Aid"
                   colorClass="bg-health-peach/30 hover:bg-health-peach/40 text-primary border-none"
-                  asChild
                 >
-                  <Link to="/patient/first-aid" />
+                  <Link to="/patient/first-aid">First Aid</Link>
                 </ActionButton>
                 
                 <ActionButton 
                   icon={<MessagesSquare />}
                   label="Video Consult"
                   colorClass="bg-health-purple/30 hover:bg-health-purple/40 text-primary border-none"
-                  asChild
                 >
-                  <Link to="/patient/consult" />
+                  <Link to="/patient/consult">Video Consult</Link>
                 </ActionButton>
               </div>
             </section>
