@@ -9,26 +9,35 @@ export function useRequireAuth(role?: "patient" | "doctor") {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // If we have definitive authentication info
-    if (session === null) {
-      // User is definitely not logged in
-      navigate("/login");
-    } else if (session) {
-      // User is logged in
-      if (role) {
-        // Check if user has the correct role
-        const userRole = session.user?.user_metadata?.role;
-        if (userRole && userRole !== role) {
-          // Redirect to appropriate dashboard if role mismatch
-          navigate(userRole === "doctor" ? "/doctor/dashboard" : "/patient/dashboard");
-        } else {
-          setIsAuthenticated(true);
+    const checkAuth = () => {
+      if (session === null) {
+        // User is definitely not logged in
+        setIsAuthenticated(false);
+        navigate("/login");
+        return;
+      }
+
+      if (session) {
+        // User is logged in
+        if (role) {
+          // Check if user has the correct role
+          const userRole = session.user?.user_metadata?.role;
+          if (userRole && userRole !== role) {
+            // Redirect to appropriate dashboard if role mismatch
+            setIsAuthenticated(false);
+            navigate(userRole === "doctor" ? "/doctor/dashboard" : "/patient/dashboard");
+            return;
+          }
         }
-      } else {
         setIsAuthenticated(true);
       }
+    };
+
+    // Only run the check if we have definitive session info
+    if (session !== undefined) {
+      checkAuth();
     }
-  }, [user, session, navigate, role]);
+  }, [session, navigate, role]);
 
   return { user, session, isAuthenticated };
 }
