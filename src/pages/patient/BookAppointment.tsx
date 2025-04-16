@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { 
   Search, MapPin, Phone, Clock, Calendar as CalendarIcon, 
-  Star, Award, FileText, User, Trash, RefreshCw
+  Star, Award, FileText, User, Trash, RefreshCw, Video, MessageSquare, CheckCircle
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -38,7 +38,7 @@ interface Appointment {
   date: Date;
   time: string;
   speciality: string;
-  status: "upcoming" | "completed" | "cancelled";
+  status: "upcoming" | "ongoing" | "completed" | "cancelled";
   notes?: string;
   prescription?: string;
 }
@@ -130,6 +130,16 @@ const mockPreviousAppointments: Appointment[] = [
     status: "completed",
     notes: "Patient has eczema on both arms. Prescribed topical steroids and moisturizer.",
     prescription: "1. Mometasone Furoate 0.1% cream - Apply twice daily\n2. Cetaphil Moisturizing Lotion - Apply liberally after bath\n3. Avoid hot water for bathing"
+  },
+  // Add an ongoing appointment
+  {
+    id: 103,
+    doctorId: 2,
+    doctorName: "Dr. Vikram Patel",
+    date: new Date(), // Today's date
+    time: "11:30 AM",
+    speciality: "Cardiologist",
+    status: "ongoing",
   }
 ];
 
@@ -156,6 +166,14 @@ const getInitials = (name) => {
     .toUpperCase();
 };
 
+// Helper to check if an appointment is for today
+const isToday = (date) => {
+  const today = new Date();
+  return date.getDate() === today.getDate() &&
+    date.getMonth() === today.getMonth() &&
+    date.getFullYear() === today.getFullYear();
+};
+
 export default function BookAppointment() {
   useRequireAuth("patient");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -167,6 +185,7 @@ export default function BookAppointment() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("book");
 
   // Load appointments from localStorage on component mount
   useEffect(() => {
@@ -206,16 +225,17 @@ export default function BookAppointment() {
     return matchesSearch && matchesSpeciality;
   });
 
-  // Get upcoming appointments
-  const upcomingAppointments = appointments.filter(appointment => 
-    appointment.status === "upcoming" && 
-    new Date(appointment.date) >= new Date()
-  );
-
-  // Get past appointments
-  const pastAppointments = appointments.filter(appointment => 
-    appointment.status === "completed"
-  );
+  // Memoize filtered appointments
+  const { upcomingAppointments, ongoingAppointments, pastAppointments } = appointments.reduce((acc, appointment) => {
+    if (appointment.status === "completed") {
+      acc.pastAppointments.push(appointment);
+    } else if (isToday(new Date(appointment.date))) {
+      acc.ongoingAppointments.push(appointment);
+    } else if (appointment.status === "upcoming" && new Date(appointment.date) > new Date()) {
+      acc.upcomingAppointments.push(appointment);
+    }
+    return acc;
+  }, { upcomingAppointments: [], ongoingAppointments: [], pastAppointments: [] });
 
   const handleBooking = () => {
     if (!selectedDate || !selectedDoctor || !selectedTime) {
@@ -238,7 +258,7 @@ export default function BookAppointment() {
         date: selectedDate,
         time: selectedTime,
         speciality: selectedDoctor.speciality,
-        status: "upcoming"
+        status: isToday(selectedDate) ? "ongoing" : "upcoming"
       };
 
       setAppointments(prev => [...prev, newAppointment]);
@@ -252,6 +272,9 @@ export default function BookAppointment() {
       setSelectedDoctor(null);
       setSelectedTime(null);
       setIsLoading(false);
+      
+      // Switch to appointments tab
+      setActiveTab("appointments");
     }, 1500);
   };
 
@@ -279,14 +302,60 @@ export default function BookAppointment() {
       setSelectedDate(new Date());
       setSelectedTime(null);
       // Switch to book tab
-      document.querySelector('button[value="book"]')?.click();
+      setActiveTab("book");
+      // Close dialog if open
+      setIsDialogOpen(false);
+    } else {
+      toast({
+        title: "Doctor Not Available",
+        description: "This doctor is no longer available for booking.",
+        variant: "destructive"
+      });
     }
+  };
+
+  // Handle marking appointment as completed
+  const handleMarkCompleted = (appointmentId: number) => {
+    setAppointments(prev => 
+      prev.map(app => 
+        app.id === appointmentId 
+          ? { 
+              ...app, 
+              status: "completed",
+              notes: "Follow-up appointment completed successfully. Patient showing good recovery.",
+              prescription: "1. Continue previous medications\n2. Follow up in 2 weeks if symptoms persist"
+            } 
+          : app
+      )
+    );
+    
+    toast({
+      title: "Appointment Completed",
+      description: "Your appointment has been marked as completed.",
+    });
   };
 
   // Handle viewing prescription
   const handleViewPrescription = (appointment: Appointment) => {
     setSelectedAppointment(appointment);
     setIsDialogOpen(true);
+  };
+
+  // Join video consultation
+  const handleJoinConsultation = (appointmentId: number) => {
+    toast({
+      title: "Joining Consultation",
+      description: "Connecting to video consultation...",
+    });
+    
+    // Here you would typically connect to a video service
+    // For demo purposes, just show a toast
+    setTimeout(() => {
+      toast({
+        title: "Connected",
+        description: "You are now connected to your doctor.",
+      });
+    }, 1500);
   };
 
   // Format date for display
@@ -299,13 +368,81 @@ export default function BookAppointment() {
     }).format(date);
   };
 
+  // Render an appointment card
+  const renderAppointmentCard = (appointment: Appointment, isPast = false) => (
+    <Card key={appointment.id} className={`border-l-4 ${isPast ? 'border-l-muted' : appointment.status === 'ongoing' ? 'border-l-green-500' : 'border-l-primary'}`}>
+      <CardContent className="pt-6">
+        <div className="flex justify-between items-start mb-2">
+          <div className="flex items-center">
+            <Avatar className="h-8 w-8 mr-2">
+              <AvatarFallback className="bg-primary/10 text-primary">
+                {getInitials(appointment.doctorName)}
+              </AvatarFallback>
+            </Avatar>
+            <h3 className="font-semibold">{appointment.doctorName}</h3>
+          </div>
+          <Badge variant="outline" className="font-normal">{appointment.speciality}</Badge>
+        </div>
+        <div className="flex items-center text-sm text-muted-foreground mb-4">
+          <CalendarIcon className="h-3 w-3 mr-1" />
+          {isToday(new Date(appointment.date)) ? 'Today' : formatDate(new Date(appointment.date))} • {appointment.time}
+        </div>
+        
+        {/* Different button sets based on appointment type */}
+        {isPast ? (
+          <div className="flex justify-between">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => handleViewPrescription(appointment)}
+            >
+              <FileText className="h-3 w-3 mr-1" /> View Prescription
+            </Button>
+            <Button 
+              variant="secondary" 
+              size="sm"
+              onClick={() => handleBookAgain(appointment)}
+            >
+              <RefreshCw className="h-3 w-3 mr-1" /> Book Again
+            </Button>
+          </div>
+        ) : appointment.status === 'ongoing' ? (
+          <div className="flex justify-between gap-2 mt-2">
+            <Button variant="outline" size="sm" className="flex-1">
+              <MessageSquare className="h-3 w-3 mr-1" /> Chat
+            </Button>
+            <Button variant="default" size="sm" className="flex-1" onClick={() => handleJoinConsultation(appointment.id)}>
+              <Video className="h-3 w-3 mr-1" /> Join
+            </Button>
+            <Button variant="secondary" size="sm" className="flex-1" onClick={() => handleMarkCompleted(appointment.id)}>
+              <CheckCircle className="h-3 w-3 mr-1" /> Complete
+            </Button>
+          </div>
+        ) : (
+          <div className="flex justify-between">
+            <Button variant="outline" size="sm">
+              <Phone className="h-3 w-3 mr-1" /> Contact
+            </Button>
+            <Button 
+              variant="destructive" 
+              size="sm"
+              onClick={() => handleCancelAppointment(appointment.id)}
+            >
+              <Trash className="h-3 w-3 mr-1" /> Cancel
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar userType="patient" />
       <div className="flex flex-1">
         <Sidebar userType="patient" />
         <main className="flex-1 p-6">
-          <Tabs defaultValue="book" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
               <TabsTrigger value="book">Book Appointment</TabsTrigger>
               <TabsTrigger value="appointments">My Appointments</TabsTrigger>
@@ -513,98 +650,49 @@ export default function BookAppointment() {
               <div className="space-y-6">
                 <h1 className="text-3xl font-bold">My Appointments</h1>
                 
-                {upcomingAppointments.length > 0 && (
+                {/* Today's Ongoing Appointments */}
+                {ongoingAppointments.length > 0 && (
                   <div>
-                    <h2 className="text-xl font-semibold mb-4">Upcoming Appointments</h2>
+                    <h2 className="text-xl font-semibold mb-4">Today's Appointments</h2>
                     <div className="grid md:grid-cols-2 gap-4">
-                      {upcomingAppointments.map(appointment => (
-                        <Card key={appointment.id} className="border-l-4 border-l-primary">
-                          <CardContent className="pt-6">
-                            <div className="flex justify-between items-start mb-2">
-                              <div className="flex items-center">
-                                <Avatar className="h-8 w-8 mr-2">
-                                  <AvatarFallback className="bg-primary/10 text-primary">
-                                    {getInitials(appointment.doctorName)}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <h3 className="font-semibold">{appointment.doctorName}</h3>
-                              </div>
-                              <Badge variant="outline" className="font-normal">{appointment.speciality}</Badge>
-                            </div>
-                            <div className="flex items-center text-sm text-muted-foreground mb-4">
-                              <CalendarIcon className="h-3 w-3 mr-1" />
-                              {formatDate(new Date(appointment.date))} • {appointment.time}
-                            </div>
-                            <div className="flex justify-between">
-                              <Button variant="outline" size="sm">
-                                <Phone className="h-3 w-3 mr-1" /> Contact
-                              </Button>
-                              <Button 
-                                variant="destructive" 
-                                size="sm"
-                                onClick={() => handleCancelAppointment(appointment.id)}
-                              >
-                                <Trash className="h-3 w-3 mr-1" /> Cancel
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {pastAppointments.length > 0 && (
-                  <div>
-                    <h2 className="text-xl font-semibold mb-4">Past Appointments</h2>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {pastAppointments.map(appointment => (
-                        <Card key={appointment.id} className="border-l-4 border-l-muted">
-                          <CardContent className="pt-6">
-                            <div className="flex justify-between items-start mb-2">
-                              <div className="flex items-center">
-                                <Avatar className="h-8 w-8 mr-2">
-                                  <AvatarFallback className="bg-primary/10 text-primary">
-                                    {getInitials(appointment.doctorName)}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <h3 className="font-semibold">{appointment.doctorName}</h3>
-                              </div>
-                              <Badge variant="outline" className="font-normal">{appointment.speciality}</Badge>
-                            </div>
-                            <div className="flex items-center text-sm text-muted-foreground mb-4">
-                              <CalendarIcon className="h-3 w-3 mr-1" />
-                              {formatDate(new Date(appointment.date))} • {appointment.time}
-                            </div>
-                            <div className="flex justify-between">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleViewPrescription(appointment)}
-                              >
-                                <FileText className="h-3 w-3 mr-1" /> View Prescription
-                              </Button>
-                              <Button 
-                                variant="secondary" 
-                                size="sm"
-                                onClick={() => handleBookAgain(appointment)}
-                              >
-                                <RefreshCw className="h-3 w-3 mr-1" /> Book Again
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
+                      {ongoingAppointments.map(appointment => renderAppointmentCard(appointment))}
                     </div>
                   </div>
                 )}
                 
-                {upcomingAppointments.length === 0 && pastAppointments.length === 0 && (
-                  <Card className="p-10 text-center">
-                    <CardContent>
-                      <p className="text-muted-foreground mb-4">You don't have any appointments yet</p>
-                      <Button onClick={() => document.querySelector('button[value="book"]')?.click()}>
-                        Book Your First Appointment
+                {/* Upcoming Appointments */}
+                {upcomingAppointments.length > 0 && (
+                  <div>
+                    <h2 className="text-xl font-semibold mb-4">Upcoming Appointments</h2>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {upcomingAppointments.map(appointment => renderAppointmentCard(appointment))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Past Appointments */}
+                {pastAppointments.length > 0 && (
+                  <div>
+                    <h2 className="text-xl font-semibold mb-4">Past Appointments</h2>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {pastAppointments.map(appointment => renderAppointmentCard(appointment, true))}
+                    </div>
+                  </div>
+                )}
+
+                {/* No appointments message */}
+                {ongoingAppointments.length === 0 && upcomingAppointments.length === 0 && pastAppointments.length === 0 && (
+                  <Card className="border-dashed border-2">
+                    <CardContent className="py-8 text-center">
+                      <div className="flex justify-center mb-4">
+                        <CalendarIcon className="h-12 w-12 text-muted-foreground/50" />
+                      </div>
+                      <h3 className="text-lg font-medium mb-2">No appointments found</h3>
+                      <p className="text-muted-foreground max-w-md mx-auto mb-4">
+                        You don't have any appointments scheduled. Book your first appointment with a doctor to get started.
+                      </p>
+                      <Button onClick={() => setActiveTab("book")}>
+                        Book Appointment
                       </Button>
                     </CardContent>
                   </Card>
@@ -612,52 +700,54 @@ export default function BookAppointment() {
               </div>
             </TabsContent>
           </Tabs>
-          
+
           {/* Prescription Dialog */}
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Prescription Details</DialogTitle>
               </DialogHeader>
+              
               {selectedAppointment && (
                 <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <User className="h-5 w-5 text-muted-foreground" />
-                    <div className="font-medium">{selectedAppointment.doctorName}</div>
-                    <Badge variant="outline">{selectedAppointment.speciality}</Badge>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-medium">{selectedAppointment.doctorName}</h3>
+                      <p className="text-sm text-muted-foreground">{selectedAppointment.speciality}</p>
+                    </div>
+                    <Badge variant="outline">
+                      {formatDate(new Date(selectedAppointment.date))}
+                    </Badge>
                   </div>
                   
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <CalendarIcon className="h-4 w-4 mr-2" />
-                    {formatDate(new Date(selectedAppointment.date))} at {selectedAppointment.time}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Doctor's Notes</h4>
-                    <p className="text-sm bg-muted p-3 rounded-md">
+                  <div className="border rounded-lg p-4 bg-muted/30">
+                    <h4 className="font-medium mb-2 flex items-center">
+                      <FileText className="h-4 w-4 mr-2" /> 
+                      Notes
+                    </h4>
+                    <p className="text-sm text-muted-foreground">
                       {selectedAppointment.notes || "No notes available"}
                     </p>
                   </div>
                   
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Prescription</h4>
-                    <pre className="text-sm bg-muted p-3 rounded-md whitespace-pre-wrap font-sans">
-                      {selectedAppointment.prescription || "No prescription available"}
-                    </pre>
+                  <div className="border rounded-lg p-4">
+                    <h4 className="font-medium mb-2 flex items-center">
+                      <FileText className="h-4 w-4 mr-2" /> 
+                      Prescription
+                    </h4>
+                    <div className="bg-muted/30 p-3 rounded-md">
+                      <pre className="text-sm whitespace-pre-wrap">
+                        {selectedAppointment.prescription || "No prescription available"}
+                      </pre>
+                    </div>
                   </div>
                   
-                  <div className="flex justify-end space-x-2">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setIsDialogOpen(false)}
-                    >
+                  <div className="flex justify-between mt-4">
+                    <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                       Close
                     </Button>
-                    <Button 
-                      variant="default"
-                      onClick={() => handleBookAgain(selectedAppointment)}
-                    >
-                      Book Follow-up
+                    <Button onClick={() => handleBookAgain(selectedAppointment)}>
+                      <RefreshCw className="h-4 w-4 mr-2" /> Book Follow-up
                     </Button>
                   </div>
                 </div>
