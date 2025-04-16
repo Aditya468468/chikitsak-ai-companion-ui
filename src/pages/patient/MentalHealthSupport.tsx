@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
@@ -219,6 +219,8 @@ export default function MentalHealthSupport() {
   const [selectedMeditation, setSelectedMeditation] = useState<number | null>(null);
   const [meditationTimer, setMeditationTimer] = useState<number | null>(null);
   const [meditationInProgress, setMeditationInProgress] = useState(false);
+  const [meditationProgress, setMeditationProgress] = useState(0);
+  const [meditationTotalTime, setMeditationTotalTime] = useState(0);
   
   // States for mood tracking
   const [moodEntries, setMoodEntries] = useState<MoodEntry[]>([]);
@@ -231,9 +233,67 @@ export default function MentalHealthSupport() {
   const [selectedRelaxation, setSelectedRelaxation] = useState<number | null>(null);
   const [relaxationTimer, setRelaxationTimer] = useState<number | null>(null);
   const [relaxationInProgress, setRelaxationInProgress] = useState(false);
+  const [relaxationProgress, setRelaxationProgress] = useState(0);
+  const [relaxationTotalTime, setRelaxationTotalTime] = useState(0);
   
   // State for self-care tips
   const [selectedSelfCare, setSelectedSelfCare] = useState<number | null>(null);
+  
+  // Timer effect for meditation
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (meditationInProgress && meditationTimer && meditationTimer > 0) {
+      interval = setInterval(() => {
+        setMeditationTimer(prevTime => {
+          if (prevTime && prevTime > 0) {
+            // Calculate progress percentage
+            const newProgress = ((meditationTotalTime - (prevTime - 1)) / meditationTotalTime) * 100;
+            setMeditationProgress(newProgress);
+            return prevTime - 1;
+          }
+          return 0;
+        });
+      }, 1000);
+    } else if (meditationTimer === 0) {
+      setMeditationInProgress(false);
+      setMeditationProgress(100);
+      toast({
+        title: "Meditation Complete",
+        description: "Great job completing your meditation session!",
+      });
+    }
+    
+    return () => clearInterval(interval);
+  }, [meditationInProgress, meditationTimer, meditationTotalTime]);
+  
+  // Timer effect for relaxation
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (relaxationInProgress && relaxationTimer && relaxationTimer > 0) {
+      interval = setInterval(() => {
+        setRelaxationTimer(prevTime => {
+          if (prevTime && prevTime > 0) {
+            // Calculate progress percentage
+            const newProgress = ((relaxationTotalTime - (prevTime - 1)) / relaxationTotalTime) * 100;
+            setRelaxationProgress(newProgress);
+            return prevTime - 1;
+          }
+          return 0;
+        });
+      }, 1000);
+    } else if (relaxationTimer === 0) {
+      setRelaxationInProgress(false);
+      setRelaxationProgress(100);
+      toast({
+        title: "Relaxation Complete",
+        description: "Great job completing your relaxation exercise!",
+      });
+    }
+    
+    return () => clearInterval(interval);
+  }, [relaxationInProgress, relaxationTimer, relaxationTotalTime]);
   
   const handleResourceClick = (resource: Resource) => {
     setSelectedResource(resource);
@@ -243,9 +303,11 @@ export default function MentalHealthSupport() {
     setSelectedMeditation(null);
     setMeditationTimer(null);
     setMeditationInProgress(false);
+    setMeditationProgress(0);
     setSelectedRelaxation(null);
     setRelaxationTimer(null);
     setRelaxationInProgress(false);
+    setRelaxationProgress(0);
     setSelectedSelfCare(null);
   };
   
@@ -278,36 +340,34 @@ export default function MentalHealthSupport() {
     setTestCompleted(true);
   };
 
+  // Format time for display (MM:SS)
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
   // Start meditation timer
   const startMeditation = (index: number) => {
     const duration = parseInt(meditationExercises[index].duration.split(" ")[0]);
+    const totalSeconds = duration * 60; // Convert minutes to seconds
     setSelectedMeditation(index);
-    setMeditationTimer(duration * 60); // Convert minutes to seconds
+    setMeditationTimer(totalSeconds);
+    setMeditationTotalTime(totalSeconds);
+    setMeditationProgress(0);
     setMeditationInProgress(true);
     
-    // Simulate timer counting down
     toast({
       title: "Meditation Started",
       description: `${meditationExercises[index].title} - ${meditationExercises[index].duration}`,
     });
-    
-    // In a real app, you would use setInterval here
-    setTimeout(() => {
-      if (meditationInProgress) {
-        setMeditationInProgress(false);
-        setMeditationTimer(null);
-        toast({
-          title: "Meditation Complete",
-          description: "Great job completing your meditation session!",
-        });
-      }
-    }, 3000); // Just for demo purposes, in reality would be duration * 1000
   };
   
   // Cancel meditation
   const cancelMeditation = () => {
     setMeditationInProgress(false);
     setMeditationTimer(null);
+    setMeditationProgress(0);
     toast({
       title: "Meditation Cancelled",
       description: "You can restart your meditation anytime.",
@@ -361,33 +421,24 @@ export default function MentalHealthSupport() {
   // Start relaxation technique timer
   const startRelaxation = (index: number) => {
     const duration = parseInt(relaxationTechniques[index].duration.split(" ")[0]);
+    const totalSeconds = duration * 60; // Convert minutes to seconds
     setSelectedRelaxation(index);
-    setRelaxationTimer(duration * 60); // Convert minutes to seconds
+    setRelaxationTimer(totalSeconds);
+    setRelaxationTotalTime(totalSeconds);
+    setRelaxationProgress(0);
     setRelaxationInProgress(true);
     
-    // Simulate timer counting down
     toast({
       title: "Relaxation Started",
       description: `${relaxationTechniques[index].title} - ${relaxationTechniques[index].duration}`,
     });
-    
-    // In a real app, you would use setInterval here
-    setTimeout(() => {
-      if (relaxationInProgress) {
-        setRelaxationInProgress(false);
-        setRelaxationTimer(null);
-        toast({
-          title: "Relaxation Complete",
-          description: "Great job completing your relaxation exercise!",
-        });
-      }
-    }, 3000); // Just for demo purposes, in reality would be duration * 1000
   };
   
   // Cancel relaxation
   const cancelRelaxation = () => {
     setRelaxationInProgress(false);
     setRelaxationTimer(null);
+    setRelaxationProgress(0);
     toast({
       title: "Relaxation Cancelled",
       description: "You can restart your relaxation exercise anytime.",
@@ -507,10 +558,15 @@ export default function MentalHealthSupport() {
                     {meditationInProgress ? (
                       <div className="space-y-4">
                         <div className="flex justify-between items-center">
-                          <p>Meditation in progress...</p>
+                          <p>
+                            Meditation in progress... 
+                            {meditationTimer !== null && (
+                              <span className="font-medium ml-2">{formatTime(meditationTimer)}</span>
+                            )}
+                          </p>
                           <Button variant="destructive" onClick={cancelMeditation}>Stop</Button>
                         </div>
-                        <Progress value={50} className="h-2" />
+                        <Progress value={meditationProgress} className="h-2" />
                       </div>
                     ) : (
                       <Button onClick={() => startMeditation(selectedMeditation)}>
@@ -682,6 +738,10 @@ export default function MentalHealthSupport() {
                     className="mb-4"
                     onClick={() => setSelectedRelaxation(null)}
                   >
+variant="outline" 
+                    className="mb-4"
+                    onClick={() => setSelectedRelaxation(null)}
+                  >
                     <ArrowLeft className="w-4 h-4 mr-2" /> Back to All Techniques
                   </Button>
                   
@@ -704,10 +764,15 @@ export default function MentalHealthSupport() {
                     {relaxationInProgress ? (
                       <div className="space-y-4">
                         <div className="flex justify-between items-center">
-                          <p>Relaxation in progress...</p>
+                          <p>
+                            Relaxation in progress... 
+                            {relaxationTimer !== null && (
+                              <span className="font-medium ml-2">{formatTime(relaxationTimer)}</span>
+                            )}
+                          </p>
                           <Button variant="destructive" onClick={cancelRelaxation}>Stop</Button>
                         </div>
-                        <Progress value={50} className="h-2" />
+                        <Progress value={relaxationProgress} className="h-2" />
                       </div>
                     ) : (
                       <Button onClick={() => startRelaxation(selectedRelaxation)}>
@@ -728,14 +793,14 @@ export default function MentalHealthSupport() {
                 Self-Care Tips
               </h2>
               <p className="mb-6 text-gray-600">
-                Daily practices to maintain mental well-being and improve your quality of life.
+                Daily practices to maintain your mental well-being and improve your quality of life.
               </p>
               
-              <div className="grid md:grid-cols-2 gap-6 mb-8">
+              <div className="grid md:grid-cols-2 gap-6 mb-6">
                 {selfCareTips.map((category, index) => (
                   <Card 
-                    key={index}
-                    className={`p-4 hover:shadow-md cursor-pointer ${
+                    key={index} 
+                    className={`p-4 hover:shadow-md transition-shadow cursor-pointer ${
                       selectedSelfCare === index ? "border-primary border-2" : ""
                     }`}
                     onClick={() => setSelectedSelfCare(index)}
@@ -751,112 +816,163 @@ export default function MentalHealthSupport() {
                   <h3 className="text-xl font-semibold mb-4">{selfCareTips[selectedSelfCare].title}</h3>
                   <p className="mb-6">{selfCareTips[selectedSelfCare].description}</p>
                   
-                  <h4 className="font-medium mb-3">Recommended Practices:</h4>
-                  <ul className="space-y-4">
+                  <div className="space-y-4">
                     {selfCareTips[selectedSelfCare].tips.map((tip, index) => (
-                      <li key={index} className="flex items-start">
-                        <div className="mr-3 mt-1 bg-primary/10 p-1 rounded-full text-primary">
-                          <Plus className="w-4 h-4" />
+                      <div key={index} className="flex items-start">
+                        <div className="mt-1 mr-3 text-primary">
+                          <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs">
+                            {index + 1}
+                          </div>
                         </div>
-                        <span>{tip}</span>
-                      </li>
+                        <p>{tip}</p>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                   
-                  <div className="mt-6">
-                    <Button 
-                      onClick={() => {
-                        toast({
-                          title: "Tip Added to Favorites",
-                          description: "You can access this tip anytime in your saved items.",
-                        });
-                      }}
-                    >
-                      Add to Favorites
+                  <div className="mt-6 pt-6 border-t border-border">
+                    <p className="text-sm text-gray-600">
+                      Remember: Self-care is not selfish. Taking care of your mental health is just as important as physical health. Try to incorporate at least one of these tips into your daily routine.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </Card>
+          )}
+          
+          {/* GAD-7 Assessment Content */}
+          {showGAD && (
+            <Card className="p-6">
+              <h2 className="text-2xl font-semibold mb-4 flex items-center">
+                <div className="mr-3 text-yellow-500"><AlertCircle className="w-6 h-6" /></div>
+                GAD-7 Anxiety Assessment
+              </h2>
+              <p className="mb-2 text-gray-600">
+                Over the last 2 weeks, how often have you been bothered by the following problems?
+              </p>
+              <p className="mb-6 text-sm text-gray-500">
+                This is a standard screening tool for anxiety. Your results are private and stored only on your device.
+              </p>
+              
+              {!testCompleted ? (
+                <div className="space-y-8">
+                  {gadQuestions.map((question, index) => (
+                    <div key={index}>
+                      <p className="mb-3 font-medium">{index + 1}. {question}</p>
+                      <RadioGroup
+                        value={gadResponses[index].toString()}
+                        onValueChange={(value) => handleGADResponse(index, parseInt(value))}
+                        className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-6"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="0" id={`q${index}-0`} />
+                          <Label htmlFor={`q${index}-0`}>Not at all</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="1" id={`q${index}-1`} />
+                          <Label htmlFor={`q${index}-1`}>Several days</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="2" id={`q${index}-2`} />
+                          <Label htmlFor={`q${index}-2`}>More than half the days</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="3" id={`q${index}-3`} />
+                          <Label htmlFor={`q${index}-3`}>Nearly every day</Label>
+                        </div>
+                      </RadioGroup>
+                      {index < gadQuestions.length - 1 && <Separator className="mt-6" />}
+                    </div>
+                  ))}
+                  
+                  <Button onClick={submitGADTest} className="mt-8">
+                    Submit Assessment
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="p-6 bg-muted rounded-lg">
+                    <h3 className="text-xl font-semibold mb-4">Your Results</h3>
+                    <div className="flex items-center justify-between mb-4">
+                      <span>Score: {calculateGADScore()}/21</span>
+                      <span className="font-medium">{getGADInterpretation(calculateGADScore()).level}</span>
+                    </div>
+                    
+                    <Progress 
+                      value={(calculateGADScore() / 21) * 100} 
+                      className="h-2"
+                      color={
+                        calculateGADScore() <= 4 ? "bg-green-500" :
+                        calculateGADScore() <= 9 ? "bg-yellow-500" :
+                        calculateGADScore() <= 14 ? "bg-orange-500" : "bg-red-500"
+                      }
+                    />
+                    
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>Minimal (0-4)</span>
+                      <span>Mild (5-9)</span>
+                      <span>Moderate (10-14)</span>
+                      <span>Severe (15-21)</span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">What This Means</h3>
+                    
+                    {calculateGADScore() <= 4 ? (
+                      <p>Your results suggest minimal symptoms of anxiety. Continue with your self-care practices and monitor your mental health.</p>
+                    ) : calculateGADScore() <= 9 ? (
+                      <p>Your results suggest mild anxiety. Consider using the resources in this app to help manage your symptoms.</p>
+                    ) : calculateGADScore() <= 14 ? (
+                      <p>Your results suggest moderate anxiety. Consider scheduling an appointment with a mental health professional to discuss your symptoms.</p>
+                    ) : (
+                      <p>Your results suggest severe anxiety. We recommend reaching out to a mental health professional as soon as possible to discuss these symptoms.</p>
+                    )}
+                    
+                    <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 text-sm">
+                      <div className="flex">
+                        <div className="flex-shrink-0">
+                          <AlertCircle className="w-5 h-5 text-yellow-400" />
+                        </div>
+                        <div className="ml-3">
+                          <p className="text-yellow-700">
+                            Note: This assessment is not a diagnosis. Only a licensed healthcare provider can diagnose anxiety disorders.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex space-x-4">
+                    <Button onClick={() => {
+                      setGadResponses(Array(7).fill(0));
+                      setTestCompleted(false);
+                    }}>
+                      Retake Assessment
+                    </Button>
+                    <Button variant="outline" onClick={() => setShowGAD(false)}>
+                      Close
                     </Button>
                   </div>
                 </div>
               )}
             </Card>
           )}
-
-          {showGAD && (
-            <Card className="p-6">
-              <h2 className="text-2xl font-semibold mb-4 flex items-center">
-                <AlertCircle className="w-6 h-6 mr-3 text-yellow-500" />
-                GAD-7 Anxiety Assessment
-              </h2>
-              
-              {!testCompleted ? (
-                <>
-                  <p className="mb-6 text-gray-600">
-                    Over the last 2 weeks, how often have you been bothered by the following problems?
-                  </p>
-                  
-                  <div className="space-y-6">
-                    {gadQuestions.map((question, index) => (
-                      <div key={index} className="space-y-3">
-                        <p className="font-medium">{index + 1}. {question}</p>
-                        <RadioGroup 
-                          value={gadResponses[index].toString()} 
-                          onValueChange={(value) => handleGADResponse(index, parseInt(value, 10))}
-                          className="flex justify-between"
-                        >
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="0" id={`q${index}-0`} />
-                            <Label htmlFor={`q${index}-0`}>Not at all</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="1" id={`q${index}-1`} />
-                            <Label htmlFor={`q${index}-1`}>Several days</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="2" id={`q${index}-2`} />
-                            <Label htmlFor={`q${index}-2`}>More than half the days</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="3" id={`q${index}-3`} />
-                            <Label htmlFor={`q${index}-3`}>Nearly every day</Label>
-                          </div>
-                        </RadioGroup>
-                        <Separator />
-                      </div>
-                    ))}
-                    <Button onClick={submitGADTest} className="mt-6">Submit Assessment</Button>
-                  </div>
-                </>
-              ) : (
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Total Score: {calculateGADScore()}/21</span>
-                      <span>{getGADInterpretation(calculateGADScore()).level}</span>
-                    </div>
-                    <Progress 
-                      value={(calculateGADScore() / 21) * 100} 
-                      className="h-2" 
-                    />
-                  </div>
-                  
-                  <div className="p-4 rounded-md bg-muted">
-                    <h3 className="font-medium mb-2">What your score means:</h3>
-                    <ul className="list-disc pl-5 space-y-1 text-sm">
-                      <li><span className="font-medium">0-4:</span> Minimal anxiety</li>
-                      <li><span className="font-medium">5-9:</span> Mild anxiety</li>
-                      <li><span className="font-medium">10-14:</span> Moderate anxiety</li>
-                      <li><span className="font-medium">15-21:</span> Severe anxiety</li>
-                    </ul>
-                    <p className="mt-4 text-sm">
-                      If your score indicates moderate to severe anxiety, consider reaching out to a mental health professional for further assessment and support.
-                    </p>
-                  </div>
-                  
-                  <div className="flex space-x-4">
-                    <Button onClick={() => setTestCompleted(false)}>Retake Assessment</Button>
-                    <Button variant="outline" onClick={() => setShowGAD(false)}>Close</Button>
-                  </div>
+          
+          {/* Default content when nothing is selected */}
+          {!selectedResource && !showGAD && (
+            <Card className="p-6 text-center">
+              <div className="py-8">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                  <Brain className="w-8 h-8" />
                 </div>
-              )}
+                <h3 className="text-xl font-medium mb-2">Welcome to Mental Health Support</h3>
+                <p className="text-gray-600 mb-6 max-w-lg mx-auto">
+                  Select one of the resources above to get started with tools and exercises designed to support your mental well-being.
+                </p>
+                <Button onClick={() => handleResourceClick(resources[0])}>
+                  Get Started
+                </Button>
+              </div>
             </Card>
           )}
         </main>
