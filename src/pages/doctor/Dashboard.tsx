@@ -21,6 +21,9 @@ export default function DoctorDashboard() {
     { id: 3, text: "Amit Singh rescheduled to tomorrow", read: true },
   ]);
   
+  // Added state to control notifications dropdown
+  const [showNotifications, setShowNotifications] = useState(false);
+  
   const [appointments, setAppointments] = useState([
     { 
       id: 1, 
@@ -74,6 +77,9 @@ export default function DoctorDashboard() {
   // For the chart toggles
   const [selectedChart, setSelectedChart] = useState("weekly");
   
+  // Modal for New Appointment
+  const [showNewAppointmentModal, setShowNewAppointmentModal] = useState(false);
+  
   useEffect(() => {
     if (isAuthenticated !== null) {
       setLoading(false);
@@ -86,12 +92,24 @@ export default function DoctorDashboard() {
     ));
   };
   
+  const markAllNotificationsAsRead = () => {
+    setNotifications(notifications.map(note => ({...note, read: true})));
+  };
+  
   const handleAppointmentClick = (id) => {
     if (showAppointmentDetails === id) {
       setShowAppointmentDetails(null);
     } else {
       setShowAppointmentDetails(id);
     }
+  };
+  
+  const toggleNotifications = () => {
+    setShowNotifications(!showNotifications);
+  };
+  
+  const handleNewAppointment = () => {
+    setShowNewAppointmentModal(true);
   };
   
   const renderTab = () => {
@@ -154,7 +172,25 @@ export default function DoctorDashboard() {
               <div className="bg-white p-6 rounded-xl shadow-sm">
                 <h3 className="text-lg font-medium mb-4">Patient Growth</h3>
                 <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <p className="text-gray-500">Patient Growth Chart Placeholder</p>
+                  {/* Added a simple SVG chart representation */}
+                  <svg width="100%" height="100%" viewBox="0 0 400 200">
+                    <path d="M 50,150 L 100,120 L 150,130 L 200,80 L 250,90 L 300,60 L 350,40" 
+                          fill="none" 
+                          stroke="#3b82f6" 
+                          strokeWidth="3" />
+                    <line x1="50" y1="150" x2="350" y2="150" stroke="#d1d5db" strokeWidth="1" />
+                    <line x1="50" y1="30" x2="50" y2="150" stroke="#d1d5db" strokeWidth="1" />
+                    <text x="50" y="170" fontSize="12" fill="#6b7280">Week 1</text>
+                    <text x="120" y="170" fontSize="12" fill="#6b7280">Week 2</text>
+                    <text x="190" y="170" fontSize="12" fill="#6b7280">Week 3</text>
+                    <text x="260" y="170" fontSize="12" fill="#6b7280">Week 4</text>
+                    <text x="330" y="170" fontSize="12" fill="#6b7280">Week 5</text>
+                    <text x="30" y="150" fontSize="12" fill="#6b7280">0</text>
+                    <text x="30" y="120" fontSize="12" fill="#6b7280">10</text>
+                    <text x="30" y="90" fontSize="12" fill="#6b7280">20</text>
+                    <text x="30" y="60" fontSize="12" fill="#6b7280">30</text>
+                    <text x="30" y="30" fontSize="12" fill="#6b7280">40</text>
+                  </svg>
                 </div>
                 <div className="flex justify-center mt-4 space-x-4">
                   <button 
@@ -180,7 +216,39 @@ export default function DoctorDashboard() {
               <div className="bg-white p-6 rounded-xl shadow-sm">
                 <h3 className="text-lg font-medium mb-4">Common Diagnoses</h3>
                 <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <p className="text-gray-500">Diagnoses Chart Placeholder</p>
+                  {/* Added a simple pie chart representation */}
+                  <svg width="200" height="200" viewBox="0 0 200 200">
+                    <g transform="translate(100, 100)">
+                      {/* Pie segments */}
+                      <path d="M 0 0 L 0 -80 A 80 80 0 0 1 69.3 -40 Z" fill="#3b82f6" />
+                      <path d="M 0 0 L 69.3 -40 A 80 80 0 0 1 69.3 40 Z" fill="#10b981" />
+                      <path d="M 0 0 L 69.3 40 A 80 80 0 0 1 -69.3 40 Z" fill="#ef4444" />
+                      <path d="M 0 0 L -69.3 40 A 80 80 0 0 1 -69.3 -40 Z" fill="#f59e0b" />
+                      <path d="M 0 0 L -69.3 -40 A 80 80 0 0 1 0 -80 Z" fill="#8b5cf6" />
+                    </g>
+                  </svg>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-blue-500 mr-2"></div>
+                    <span className="text-sm">Anxiety (32%)</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-green-500 mr-2"></div>
+                    <span className="text-sm">Depression (25%)</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-red-500 mr-2"></div>
+                    <span className="text-sm">ADHD (18%)</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-yellow-500 mr-2"></div>
+                    <span className="text-sm">Insomnia (15%)</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-purple-500 mr-2"></div>
+                    <span className="text-sm">Others (10%)</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -264,7 +332,15 @@ export default function DoctorDashboard() {
                   <p className="text-sm text-gray-500">Last 7 days</p>
                 </div>
                 <div className="w-24 h-12 bg-gray-100 rounded-md flex items-center justify-center relative group-hover:bg-gray-200">
-                  Chart
+                  {/* Simple mini chart */}
+                  <svg width="80" height="30" viewBox="0 0 80 30">
+                    <polyline 
+                      points="5,25 15,18 25,22 35,10 45,15 55,8 65,12 75,5" 
+                      fill="none" 
+                      stroke="#3b82f6" 
+                      strokeWidth="2" 
+                    />
+                  </svg>
                   <div className="absolute opacity-0 group-hover:opacity-100 top-0 right-0 mt-1 mr-1">
                     <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -280,7 +356,13 @@ export default function DoctorDashboard() {
                   <p className="text-sm text-gray-500">Last month</p>
                 </div>
                 <div className="w-24 h-12 bg-gray-100 rounded-md flex items-center justify-center relative group-hover:bg-gray-200">
-                  82%
+                  {/* Circular progress indicator */}
+                  <svg width="40" height="40" viewBox="0 0 40 40">
+                    <circle cx="20" cy="20" r="15" fill="none" stroke="#e5e7eb" strokeWidth="5" />
+                    <circle cx="20" cy="20" r="15" fill="none" stroke="#3b82f6" strokeWidth="5" 
+                            strokeDasharray="94.2" strokeDashoffset="17" transform="rotate(-90 20 20)" />
+                    <text x="20" y="24" textAnchor="middle" fontSize="10" fill="#3b82f6" fontWeight="bold">82%</text>
+                  </svg>
                   <div className="absolute opacity-0 group-hover:opacity-100 top-0 right-0 mt-1 mr-1">
                     <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -296,7 +378,13 @@ export default function DoctorDashboard() {
                   <p className="text-sm text-gray-500">Last month</p>
                 </div>
                 <div className="w-24 h-12 bg-gray-100 rounded-md flex items-center justify-center relative group-hover:bg-gray-200">
-                  94%
+                  {/* Circular progress indicator */}
+                  <svg width="40" height="40" viewBox="0 0 40 40">
+                    <circle cx="20" cy="20" r="15" fill="none" stroke="#e5e7eb" strokeWidth="5" />
+                    <circle cx="20" cy="20" r="15" fill="none" stroke="#10b981" strokeWidth="5" 
+                            strokeDasharray="94.2" strokeDashoffset="5.7" transform="rotate(-90 20 20)" />
+                    <text x="20" y="24" textAnchor="middle" fontSize="10" fill="#10b981" fontWeight="bold">94%</text>
+                  </svg>
                   <div className="absolute opacity-0 group-hover:opacity-100 top-0 right-0 mt-1 mr-1">
                     <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -341,7 +429,10 @@ export default function DoctorDashboard() {
             
             <div className="mt-4 md:mt-0 flex space-x-2 items-center">
               <div className="relative">
-                <button className="p-2 bg-white rounded-full shadow hover:bg-gray-50 relative">
+                <button 
+                  className="p-2 bg-white rounded-full shadow hover:bg-gray-50 relative"
+                  onClick={toggleNotifications}
+                >
                   <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
                   </svg>
@@ -352,35 +443,45 @@ export default function DoctorDashboard() {
                   )}
                 </button>
                 
-                {/* Dropdown for notifications */}
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg z-10 hidden">
-                  <div className="py-2 px-4 bg-gray-50 rounded-t-md border-b">
-                    <div className="flex justify-between">
-                      <h3 className="font-medium">Notifications</h3>
-                      <button className="text-sm text-primary">Mark all as read</button>
+                {/* Dropdown for notifications - fixed to show based on state */}
+                {showNotifications && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg z-10">
+                    <div className="py-2 px-4 bg-gray-50 rounded-t-md border-b">
+                      <div className="flex justify-between">
+                        <h3 className="font-medium">Notifications</h3>
+                        <button 
+                          className="text-sm text-primary"
+                          onClick={markAllNotificationsAsRead}
+                        >
+                          Mark all as read
+                        </button>
+                      </div>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto">
+                      {notifications.map(notification => (
+                        <div 
+                          key={notification.id} 
+                          className={`p-3 border-b hover:bg-gray-50 cursor-pointer ${!notification.read ? 'bg-blue-50' : ''}`}
+                          onClick={() => markNotificationAsRead(notification.id)}
+                        >
+                          <p className={`text-sm ${!notification.read ? 'font-medium' : 'text-gray-600'}`}>
+                            {notification.text}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">3 hours ago</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="py-2 px-4 border-t text-center">
+                      <button className="text-sm text-primary">View all notifications</button>
                     </div>
                   </div>
-                  <div className="max-h-64 overflow-y-auto">
-                    {notifications.map(notification => (
-                      <div 
-                        key={notification.id} 
-                        className={`p-3 border-b hover:bg-gray-50 cursor-pointer ${!notification.read ? 'bg-blue-50' : ''}`}
-                        onClick={() => markNotificationAsRead(notification.id)}
-                      >
-                        <p className={`text-sm ${!notification.read ? 'font-medium' : 'text-gray-600'}`}>
-                          {notification.text}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">3 hours ago</p>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="py-2 px-4 border-t text-center">
-                    <button className="text-sm text-primary">View all notifications</button>
-                  </div>
-                </div>
+                )}
               </div>
               
-              <button className="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark flex items-center">
+              <button 
+                className="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark flex items-center"
+                onClick={handleNewAppointment}
+              >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                 </svg>
@@ -413,7 +514,115 @@ export default function DoctorDashboard() {
           {renderTab()}
         </main>
       </div>
+
+      {/* New Appointment Modal */}
+      {showNewAppointmentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-25 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 shadow-lg w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold">Schedule New Appointment</h3>
+              <button 
+                onClick={() => setShowNewAppointmentModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
+            
+            <form>
+              <div className="mb-4">
+                <label className="block text-gray-700 text-sm font-medium mb-2" htmlFor="patient">
+                  Patient
+                </label>
+                <select 
+                  id="patient" 
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="">Select a patient</option>
+                  <option value="amit">Amit Singh</option>
+                  <option value="mohit">Mohit Kumar</option>
+                  <option value="priya">Priya Desai</option>
+                  <option value="new">+ Add new patient</option>
+                </select>
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-gray-700 text-sm font-medium mb-2" htmlFor="appointmentType">
+                  Appointment Type
+                </label>
+                <select 
+                  id="appointmentType" 
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="">Select type</option>
+                  <option value="consultation">Consultation</option>
+                  <option value="followup">Follow-up</option>
+                  <option value="telehealth">Telehealth</option>
+                  <option value="newpatient">New Patient</option>
+                </select>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-gray-700 text-sm font-medium mb-2" htmlFor="date">
+                    Date
+                  </label>
+                  <input 
+                    type="date" 
+                    id="date" 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 text-sm font-medium mb-2" htmlFor="time">
+                    Time
+                  </label>
+                  <input 
+                    type="time" 
+                    id="time" 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-gray-700 text-sm font-medium mb-2" htmlFor="notes">
+                  Notes
+                </label>
+                <textarea 
+                  id="notes" 
+                  rows="3" 
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="Add any notes or special instructions..."
+                ></textarea>
+              </div>
+              
+              <div className="flex justify-end space-x-3">
+                <button 
+                  type="button" 
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                  onClick={() => setShowNewAppointmentModal(false)}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="button" 
+                  className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark"
+                  onClick={() => {
+                    // Here you would typically save the appointment
+                    alert("Appointment scheduled successfully!");
+                    setShowNewAppointmentModal(false);
+                  }}
+                >
+                  Schedule
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
