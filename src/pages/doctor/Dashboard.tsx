@@ -62,7 +62,7 @@ export default function DoctorDashboard() {
               <div className="space-y-4">
                 <div className="flex border-l-4 border-primary pl-4 py-2">
                   <div className="flex-1">
-                    <p className="font-medium">Jane Cooper</p>
+                    <p className="font-medium">Amit Singh</p>
                     <p className="text-sm text-gray-500">Consultation</p>
                   </div>
                   <div className="text-right">
@@ -73,7 +73,7 @@ export default function DoctorDashboard() {
                 
                 <div className="flex border-l-4 border-health-purple pl-4 py-2">
                   <div className="flex-1">
-                    <p className="font-medium">Alex Johnson</p>
+                    <p className="font-medium">Mohit Kumar</p>
                     <p className="text-sm text-gray-500">Follow-up</p>
                   </div>
                   <div className="text-right">
@@ -84,7 +84,7 @@ export default function DoctorDashboard() {
                 
                 <div className="flex border-l-4 border-health-lightblue pl-4 py-2">
                   <div className="flex-1">
-                    <p className="font-medium">Michael Brown</p>
+                    <p className="font-medium">Somesh P</p>
                     <p className="text-sm text-gray-500">New Patient</p>
                   </div>
                   <div className="text-right">
