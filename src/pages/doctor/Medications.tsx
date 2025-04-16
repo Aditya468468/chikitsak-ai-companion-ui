@@ -48,8 +48,6 @@ const Medications = () => {
     notes: "",
   });
 
-  // const { speak } = useSpeechSynthesis();  // Removed speech synthesis
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -60,21 +58,16 @@ const Medications = () => {
     setShowModal(false);
   };
 
-  // const handleSpeak = (med: any) => {  // Removed text-to-speech functionality
-  //   const text = `Patient ${med.patient}. Medication: ${med.name}, ${med.dosage}, ${med.frequency}. Notes: ${med.notes}`;
-  //   speak({ text });
-  // };
-
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      <h1 className="text-4xl font-bold mb-6 text-center text-blue-700 drop-shadow-lg">
+      <h1 className="text-4xl font-bold mb-6 text-center text-sky-700 drop-shadow-lg">
         🩺 Doctor's Medications
       </h1>
 
       <div className="flex justify-end mb-6">
         <button
           onClick={() => setShowModal(true)}
-          className="bg-gradient-to-r from-blue-500 to-purple-500 hover:scale-105 duration-200 text-white px-5 py-2 rounded-xl shadow-md"
+          className="bg-sky-500 hover:bg-sky-600 text-white font-semibold px-6 py-2 rounded-lg shadow-md transition transform hover:scale-105"
         >
           + Add Medication
         </button>
@@ -84,7 +77,7 @@ const Medications = () => {
         {medications.map((med, index) => (
           <div
             key={index}
-            className="bg-white rounded-xl p-5 border border-gray-200 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition duration-300"
+            className="bg-white rounded-xl p-5 border border-sky-100 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition duration-300"
           >
             <h2 className="text-xl font-semibold text-gray-800 mb-2">
               👤 {med.patient}
@@ -101,70 +94,66 @@ const Medications = () => {
             <p className="text-sm text-gray-600 mb-3">
               <strong>📝 Notes:</strong> {med.notes}
             </p>
-            {/* Removed the Speak button */}
-            {/* <button
-              onClick={() => handleSpeak(med)}
-              className="mt-2 text-blue-600 hover:underline text-sm"
-            >
-              🔊 Speak
-            </button> */}
           </div>
         ))}
       </div>
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-xl w-[90%] max-w-md shadow-2xl border border-blue-300">
-            <h2 className="text-2xl font-bold mb-4 text-blue-600">
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 transition-opacity">
+          <div className="bg-white p-8 rounded-2xl w-[90%] max-w-md shadow-2xl border border-sky-300 animate-fadeIn">
+            <h2 className="text-2xl font-bold mb-6 text-sky-600 text-center">
               Add New Medication
             </h2>
-            <input
-              name="patient"
-              placeholder="Patient Name"
-              value={form.patient}
-              onChange={handleChange}
-              className="w-full mb-2 p-2 border rounded"
-            />
-            <input
-              name="name"
-              placeholder="Medicine Name"
-              value={form.name}
-              onChange={handleChange}
-              className="w-full mb-2 p-2 border rounded"
-            />
-            <input
-              name="dosage"
-              placeholder="Dosage (e.g., 500mg)"
-              value={form.dosage}
-              onChange={handleChange}
-              className="w-full mb-2 p-2 border rounded"
-            />
-            <input
-              name="frequency"
-              placeholder="Frequency (e.g., Twice a day)"
-              value={form.frequency}
-              onChange={handleChange}
-              className="w-full mb-2 p-2 border rounded"
-            />
-            <textarea
-              name="notes"
-              placeholder="Additional Notes"
-              value={form.notes}
-              onChange={handleChange}
-              className="w-full mb-2 p-2 border rounded"
-            ></textarea>
 
-            <div className="flex justify-end space-x-2">
+            <div className="space-y-4">
+              <input
+                name="patient"
+                placeholder="Patient Name"
+                value={form.patient}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-400"
+              />
+              <input
+                name="name"
+                placeholder="Medicine Name"
+                value={form.name}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-400"
+              />
+              <input
+                name="dosage"
+                placeholder="Dosage (e.g., 500mg)"
+                value={form.dosage}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-400"
+              />
+              <input
+                name="frequency"
+                placeholder="Frequency (e.g., Twice a day)"
+                value={form.frequency}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-400"
+              />
+              <textarea
+                name="notes"
+                placeholder="Additional Notes"
+                value={form.notes}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-400"
+              ></textarea>
+            </div>
+
+            <div className="flex justify-end mt-6 space-x-3">
               <button
                 onClick={() => setShowModal(false)}
-                className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400"
+                className="px-4 py-2 rounded-md bg-gray-300 hover:bg-gray-400 transition"
               >
                 Cancel
               </button>
               <button
                 onClick={handleAdd}
-                className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+                className="px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700 transition"
               >
                 Add
               </button>
