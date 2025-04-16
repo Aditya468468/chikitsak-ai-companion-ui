@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
@@ -9,14 +9,16 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { 
   Search, MapPin, Phone, Clock, Calendar as CalendarIcon, 
-  Star, Award, FileText, User, Trash, RefreshCw, Video, MessageSquare, CheckCircle
+  Star, Award, FileText, User, Trash, RefreshCw, Video, MessageSquare, CheckCircle,
+  Send, X, ExternalLink
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Doctor {
   id: number;
@@ -29,6 +31,7 @@ interface Doctor {
   image: string;
   fees: number;
   languages: string[];
+  meetLink?: string;
 }
 
 interface Appointment {
@@ -41,6 +44,16 @@ interface Appointment {
   status: "upcoming" | "ongoing" | "completed" | "cancelled";
   notes?: string;
   prescription?: string;
+  meetLink?: string;
+}
+
+interface ChatMessage {
+  id: string;
+  sender: "patient" | "doctor";
+  message: string;
+  timestamp: Date;
+  isRead: boolean;
+  appointmentId: number;
 }
 
 // Mock data with Indian names and better images
@@ -55,7 +68,8 @@ const mockDoctors: Doctor[] = [
     availableTimes: ["10:00 AM", "11:00 AM", "2:00 PM", "4:00 PM"],
     image: "https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/person.svg", // Fallback SVG
     fees: 500,
-    languages: ["Hindi", "English", "Bengali"]
+    languages: ["Hindi", "English", "Bengali"],
+    meetLink: "https://meet.google.com/abc-defg-hij"
   },
   {
     id: 2,
@@ -67,7 +81,8 @@ const mockDoctors: Doctor[] = [
     availableTimes: ["9:00 AM", "11:30 AM", "1:00 PM", "3:00 PM"],
     image: "https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/person.svg", // Fallback SVG
     fees: 1200,
-    languages: ["Hindi", "English", "Gujarati"]
+    languages: ["Hindi", "English", "Gujarati"],
+    meetLink: "https://meet.google.com/jkl-mnop-qrs"
   },
   {
     id: 3,
@@ -79,7 +94,8 @@ const mockDoctors: Doctor[] = [
     availableTimes: ["10:30 AM", "12:00 PM", "3:30 PM", "5:00 PM"],
     image: "https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/person.svg", // Fallback SVG
     fees: 800,
-    languages: ["Hindi", "English", "Marathi"]
+    languages: ["Hindi", "English", "Marathi"],
+    meetLink: "https://meet.google.com/tuv-wxyz-123"
   },
   {
     id: 4,
@@ -91,7 +107,8 @@ const mockDoctors: Doctor[] = [
     availableTimes: ["8:30 AM", "10:30 AM", "2:30 PM", "4:30 PM"],
     image: "https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/person.svg", // Fallback SVG
     fees: 1000,
-    languages: ["Hindi", "English", "Tamil"]
+    languages: ["Hindi", "English", "Tamil"],
+    meetLink: "https://meet.google.com/456-789-abc"
   },
   {
     id: 5,
@@ -103,7 +120,8 @@ const mockDoctors: Doctor[] = [
     availableTimes: ["9:00 AM", "11:00 AM", "1:30 PM", "4:00 PM"],
     image: "https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/person.svg", // Fallback SVG
     fees: 900,
-    languages: ["Hindi", "English", "Telugu"]
+    languages: ["Hindi", "English", "Telugu"],
+    meetLink: "https://meet.google.com/def-ghi-jkl"
   }
 ];
 
@@ -118,7 +136,8 @@ const mockPreviousAppointments: Appointment[] = [
     speciality: "General Physician",
     status: "completed",
     notes: "Patient complained of persistent cough and mild fever. Prescribed antibiotics and cough syrup.",
-    prescription: "1. Azithromycin 500mg - Once daily for 3 days\n2. Bromhexine Syrup - 10ml thrice daily\n3. Paracetamol 500mg - SOS for fever"
+    prescription: "1. Azithromycin 500mg - Once daily for 3 days\n2. Bromhexine Syrup - 10ml thrice daily\n3. Paracetamol 500mg - SOS for fever",
+    meetLink: "https://meet.google.com/abc-defg-hij"
   },
   {
     id: 102,
@@ -129,7 +148,8 @@ const mockPreviousAppointments: Appointment[] = [
     speciality: "Dermatologist",
     status: "completed",
     notes: "Patient has eczema on both arms. Prescribed topical steroids and moisturizer.",
-    prescription: "1. Mometasone Furoate 0.1% cream - Apply twice daily\n2. Cetaphil Moisturizing Lotion - Apply liberally after bath\n3. Avoid hot water for bathing"
+    prescription: "1. Mometasone Furoate 0.1% cream - Apply twice daily\n2. Cetaphil Moisturizing Lotion - Apply liberally after bath\n3. Avoid hot water for bathing",
+    meetLink: "https://meet.google.com/tuv-wxyz-123"
   },
   // Add an ongoing appointment
   {
@@ -140,6 +160,51 @@ const mockPreviousAppointments: Appointment[] = [
     time: "11:30 AM",
     speciality: "Cardiologist",
     status: "ongoing",
+    meetLink: "https://meet.google.com/jkl-mnop-qrs"
+  }
+];
+
+// Mock chat messages
+const mockChatMessages: ChatMessage[] = [
+  {
+    id: "msg1",
+    appointmentId: 103,
+    sender: "doctor",
+    message: "Hello! I can see you've booked an appointment for today. How can I help you?",
+    timestamp: new Date(new Date().setHours(new Date().getHours() - 2)),
+    isRead: true
+  },
+  {
+    id: "msg2",
+    appointmentId: 103,
+    sender: "patient",
+    message: "Hi Dr. Patel, I've been experiencing some chest pain lately, especially after physical activity.",
+    timestamp: new Date(new Date().setHours(new Date().getHours() - 1)),
+    isRead: true
+  },
+  {
+    id: "msg3",
+    appointmentId: 103,
+    sender: "doctor",
+    message: "I understand your concern. Could you describe the nature of the pain? Is it sharp, dull, or pressure-like? Does it radiate to other areas?",
+    timestamp: new Date(new Date().setMinutes(new Date().getMinutes() - 45)),
+    isRead: true
+  },
+  {
+    id: "msg4",
+    appointmentId: 103,
+    sender: "patient",
+    message: "It feels like pressure, mostly in the center of my chest. Sometimes it goes to my left shoulder.",
+    timestamp: new Date(new Date().setMinutes(new Date().getMinutes() - 30)),
+    isRead: true
+  },
+  {
+    id: "msg5",
+    appointmentId: 103,
+    sender: "doctor",
+    message: "Thank you for that description. We'll discuss this in detail during our video consultation. Please make sure to join on time, and I'd recommend having your recent medical reports handy if available.",
+    timestamp: new Date(new Date().setMinutes(new Date().getMinutes() - 15)),
+    isRead: false
   }
 ];
 
@@ -186,8 +251,12 @@ export default function BookAppointment() {
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("book");
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Load appointments from localStorage on component mount
+  // Load appointments and chat messages from localStorage on component mount
   useEffect(() => {
     const savedAppointments = localStorage.getItem('appointments');
     if (savedAppointments) {
@@ -204,6 +273,22 @@ export default function BookAppointment() {
     } else {
       setAppointments([...mockPreviousAppointments]);
     }
+
+    const savedChatMessages = localStorage.getItem('chatMessages');
+    if (savedChatMessages) {
+      try {
+        const parsedMessages = JSON.parse(savedChatMessages).map(msg => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        }));
+        setChatMessages(parsedMessages);
+      } catch (error) {
+        console.error("Error parsing saved chat messages:", error);
+        setChatMessages([...mockChatMessages]);
+      }
+    } else {
+      setChatMessages([...mockChatMessages]);
+    }
   }, []);
 
   // Save appointments to localStorage whenever they change
@@ -212,6 +297,20 @@ export default function BookAppointment() {
       localStorage.setItem('appointments', JSON.stringify(appointments));
     }
   }, [appointments]);
+
+  // Save chat messages to localStorage whenever they change
+  useEffect(() => {
+    if (chatMessages.length > 0) {
+      localStorage.setItem('chatMessages', JSON.stringify(chatMessages));
+    }
+  }, [chatMessages]);
+
+  // Scroll to bottom of chat when messages change or chat is opened
+  useEffect(() => {
+    if (chatEndRef.current && isChatOpen) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages, isChatOpen]);
 
   // Filter doctors based on search and speciality
   const filteredDoctors = mockDoctors.filter(doctor => {
@@ -237,6 +336,12 @@ export default function BookAppointment() {
     return acc;
   }, { upcomingAppointments: [], ongoingAppointments: [], pastAppointments: [] });
 
+  // Get appointment-specific chat messages
+  const getAppointmentChatMessages = (appointmentId) => {
+    return chatMessages.filter(msg => msg.appointmentId === appointmentId)
+      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  };
+
   const handleBooking = () => {
     if (!selectedDate || !selectedDoctor || !selectedTime) {
       toast({
@@ -258,7 +363,8 @@ export default function BookAppointment() {
         date: selectedDate,
         time: selectedTime,
         speciality: selectedDoctor.speciality,
-        status: isToday(selectedDate) ? "ongoing" : "upcoming"
+        status: isToday(selectedDate) ? "ongoing" : "upcoming",
+        meetLink: selectedDoctor.meetLink
       };
 
       setAppointments(prev => [...prev, newAppointment]);
@@ -267,6 +373,18 @@ export default function BookAppointment() {
         title: "Appointment Booked Successfully!",
         description: `Your appointment with ${selectedDoctor.name} is scheduled for ${selectedDate.toLocaleDateString()} at ${selectedTime}.`,
       });
+
+      // Add welcome message from doctor
+      const newChatMessage: ChatMessage = {
+        id: `msg${Date.now()}`,
+        appointmentId: newAppointment.id,
+        sender: "doctor",
+        message: `Hello! This is ${selectedDoctor.name}. Thank you for booking an appointment. I look forward to our session on ${selectedDate.toLocaleDateString()} at ${selectedTime}. Feel free to message me here if you have any questions before our appointment.`,
+        timestamp: new Date(),
+        isRead: false
+      };
+      
+      setChatMessages(prev => [...prev, newChatMessage]);
 
       // Reset selection
       setSelectedDoctor(null);
@@ -341,21 +459,73 @@ export default function BookAppointment() {
     setIsDialogOpen(true);
   };
 
-  // Join video consultation
-  const handleJoinConsultation = (appointmentId: number) => {
-    toast({
-      title: "Joining Consultation",
-      description: "Connecting to video consultation...",
-    });
-    
-    // Here you would typically connect to a video service
-    // For demo purposes, just show a toast
-    setTimeout(() => {
+  // Join video consultation - redirects to Google Meet
+  const handleJoinConsultation = (appointment: Appointment) => {
+    if (appointment.meetLink) {
       toast({
-        title: "Connected",
-        description: "You are now connected to your doctor.",
+        title: "Joining Video Call",
+        description: "Redirecting to Google Meet...",
       });
-    }, 1500);
+      
+      // Redirect to Google Meet in a new tab
+      window.open(appointment.meetLink, "_blank", "noopener,noreferrer");
+    } else {
+      toast({
+        title: "Video Link Not Available",
+        description: "The video link for this appointment is not available.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Open chat for an appointment
+  const handleOpenChat = (appointment: Appointment) => {
+    setSelectedAppointment(appointment);
+    setIsChatOpen(true);
+    
+    // Mark unread messages as read
+    if (selectedAppointment) {
+      setChatMessages(prev => 
+        prev.map(msg => 
+          msg.appointmentId === appointment.id && msg.sender === "doctor" && !msg.isRead
+            ? { ...msg, isRead: true }
+            : msg
+        )
+      );
+    }
+  };
+
+  // Send a new chat message
+  const handleSendMessage = () => {
+    if (!newMessage.trim() || !selectedAppointment) return;
+    
+    const newChatMessage: ChatMessage = {
+      id: `msg${Date.now()}`,
+      appointmentId: selectedAppointment.id,
+      sender: "patient",
+      message: newMessage.trim(),
+      timestamp: new Date(),
+      isRead: false
+    };
+    
+    setChatMessages(prev => [...prev, newChatMessage]);
+    setNewMessage("");
+    
+    // Simulate doctor's reply after a short delay
+    setTimeout(() => {
+      if (selectedAppointment) {
+        const doctorReply: ChatMessage = {
+          id: `msg${Date.now() + 1}`,
+          appointmentId: selectedAppointment.id,
+          sender: "doctor",
+          message: "Thank you for your message. I'll get back to you shortly.",
+          timestamp: new Date(),
+          isRead: false
+        };
+        
+        setChatMessages(prev => [...prev, doctorReply]);
+      }
+    }, 10000); // 10 seconds delay
   };
 
   // Format date for display
@@ -366,6 +536,24 @@ export default function BookAppointment() {
       month: 'long',
       year: 'numeric'
     }).format(date);
+  };
+
+  // Format timestamp for chat messages
+  const formatMessageTime = (date: Date) => {
+    return new Intl.DateTimeFormat('en-IN', {
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: true
+    }).format(date);
+  };
+
+  // Get unread message count for an appointment
+  const getUnreadCount = (appointmentId: number) => {
+    return chatMessages.filter(msg => 
+      msg.appointmentId === appointmentId && 
+      msg.sender === "doctor" && 
+      !msg.isRead
+    ).length;
   };
 
   // Render an appointment card
@@ -407,21 +595,52 @@ export default function BookAppointment() {
             </Button>
           </div>
         ) : appointment.status === 'ongoing' ? (
-          <div className="flex justify-between gap-2 mt-2">
-            <Button variant="outline" size="sm" className="flex-1">
-              <MessageSquare className="h-3 w-3 mr-1" /> Chat
-            </Button>
-            <Button variant="default" size="sm" className="flex-1" onClick={() => handleJoinConsultation(appointment.id)}>
-              <Video className="h-3 w-3 mr-1" /> Join
-            </Button>
-            <Button variant="secondary" size="sm" className="flex-1" onClick={() => handleMarkCompleted(appointment.id)}>
-              <CheckCircle className="h-3 w-3 mr-1" /> Complete
+          <div className="flex flex-col gap-2 mt-2">
+            <div className="flex justify-between gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex-1 relative"
+                onClick={() => handleOpenChat(appointment)}
+              >
+                <MessageSquare className="h-3 w-3 mr-1" /> Chat
+                {getUnreadCount(appointment.id) > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
+                    {getUnreadCount(appointment.id)}
+                  </span>
+                )}
+              </Button>
+              <Button 
+                variant="default" 
+                size="sm" 
+                className="flex-1"
+                onClick={() => handleJoinConsultation(appointment)}
+              >
+                <Video className="h-3 w-3 mr-1" /> Join Meet
+              </Button>
+            </div>
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              onClick={() => handleMarkCompleted(appointment.id)}
+            >
+              <CheckCircle className="h-3 w-3 mr-1" /> Mark as Completed
             </Button>
           </div>
         ) : (
           <div className="flex justify-between">
-            <Button variant="outline" size="sm">
-              <Phone className="h-3 w-3 mr-1" /> Contact
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="relative"
+              onClick={() => handleOpenChat(appointment)}
+            >
+              <MessageSquare className="h-3 w-3 mr-1" /> Chat
+              {getUnreadCount(appointment.id) > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
+                  {getUnreadCount(appointment.id)}
+                </span>
+              )}
             </Button>
             <Button 
               variant="destructive" 
@@ -527,22 +746,26 @@ export default function BookAppointment() {
                                   <div className="flex items-center text-xs text-muted-foreground">
                                     <MapPin className="h-3 w-3 mr-1" /> {doctor.location}
                                   </div>
-                                  {doctor.id === 1 && (
-                                    <Badge className="mt-2 bg-blue-100 text-blue-800 hover:bg-blue-200">
-                                      <Award className="h-3 w-3 mr-1" /> Top Rated
-                                    </Badge>
-                                  )}
-                                  {doctor.id === 2 && (
-                                    <Badge variant="secondary" className="mt-2">
-                                      <Award className="h-3 w-3 mr-1" /> Specialist
-                                    </Badge>
+                                  {doctor.meetLink && (
+                                    <div className="flex items-center text-xs text-muted-foreground mt-1">
+                                      <Video className="h-3 w-3 mr-1" /> Online Consultation Available
+                                    </div>
                                   )}
                                 </div>
                               </div>
                             ))
                           ) : (
                             <div className="text-center py-10">
-                              <p className="text-muted-foreground">No doctors found matching your criteria</p>
+                              <p className="text-muted-foreground">No doctors found matching your criteria.</p>
+                              <Button 
+                                variant="link" 
+                                onClick={() => {
+                                  setSearchQuery("");
+                                  setSelectedSpeciality("All Specialities");
+                                }}
+                              >
+                                Clear filters
+                              </Button>
                             </div>
                           )}
                         </div>
@@ -551,211 +774,242 @@ export default function BookAppointment() {
                   </Card>
                 </div>
 
-                <div className="space-y-6">
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle>Select Date</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={setSelectedDate}
-                        className="rounded-md border"
-                        disabled={(date) => {
-                          const today = new Date();
-                          today.setHours(0, 0, 0, 0);
-                          return date < today || date > new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
-                        }}
-                      />
-                      {selectedDate && (
-                        <p className="text-sm text-center mt-2 text-muted-foreground">
-                          <CalendarIcon className="inline h-3 w-3 mr-1" />
-                          {formatDate(selectedDate)}
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  {selectedDoctor && (
+                <div>
+                  <div className="space-y-4">
                     <Card>
                       <CardHeader className="pb-3">
-                        <CardTitle>Available Time Slots</CardTitle>
+                        <CardTitle>Select Date & Time</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="grid grid-cols-2 gap-2">
-                          {selectedDoctor.availableTimes.map((time) => (
-                            <Button
-                              key={time}
-                              variant={selectedTime === time ? "default" : "outline"}
-                              onClick={() => setSelectedTime(time)}
-                              className="w-full"
-                              size="sm"
-                            >
-                              <Clock className="mr-1 h-3 w-3" />
-                              {time}
-                            </Button>
-                          ))}
-                        </div>
+                        <Calendar
+                          mode="single"
+                          selected={selectedDate}
+                          onSelect={setSelectedDate}
+                          className="border rounded-md mb-4"
+                          disabled={(date) => {
+                            // Disable past dates
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            return date < today;
+                          }}
+                        />
+                      
+                        {selectedDoctor && (
+                          <div className="mt-4">
+                            <h3 className="text-sm font-medium mb-2">Available Time Slots</h3>
+                            <div className="grid grid-cols-2 gap-2">
+                              {selectedDoctor.availableTimes.map((time) => (
+                                <Button
+                                  key={time}
+                                  variant={selectedTime === time ? "default" : "outline"}
+                                  size="sm"
+                                  className="w-full"
+                                  onClick={() => setSelectedTime(time)}
+                                >
+                                  <Clock className="h-3 w-3 mr-1" /> {time}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {!selectedDoctor && (
+                          <div className="text-center py-4 text-muted-foreground text-sm">
+                            Please select a doctor to view available time slots
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
-                  )}
-
-                  <Card className="bg-primary/5 border-primary/20">
-                    <CardContent className="pt-6">
-                      <h3 className="font-semibold mb-4">Appointment Summary</h3>
-                      {!selectedDoctor ? (
-                        <p className="text-sm text-muted-foreground">Please select a doctor to see appointment details</p>
-                      ) : (
-                        <div className="space-y-3">
-                          <div className="flex justify-between">
-                            <span className="text-sm text-muted-foreground">Doctor</span>
-                            <span className="text-sm font-medium">{selectedDoctor.name}</span>
+                    
+                    {selectedDoctor && (
+                      <Card>
+                        <CardHeader className="pb-3">
+                          <CardTitle>Booking Summary</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Doctor:</span>
+                              <span className="font-medium">{selectedDoctor.name}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Speciality:</span>
+                              <span>{selectedDoctor.speciality}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Date:</span>
+                              <span>{selectedDate ? formatDate(selectedDate) : "Not selected"}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Time:</span>
+                              <span>{selectedTime || "Not selected"}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Consultation Fee:</span>
+                              <span className="font-medium">₹{selectedDoctor.fees}</span>
+                            </div>
+                            <div className="border-t pt-3 mt-3">
+                              <Button 
+                                className="w-full" 
+                                disabled={!selectedDate || !selectedTime || isLoading}
+                                onClick={handleBooking}
+                              >
+                                {isLoading ? "Booking..." : "Confirm Booking"}
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-sm text-muted-foreground">Speciality</span>
-                            <span className="text-sm">{selectedDoctor.speciality}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-sm text-muted-foreground">Date</span>
-                            <span className="text-sm">{selectedDate?.toLocaleDateString()}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-sm text-muted-foreground">Time</span>
-                            <span className="text-sm">{selectedTime || "Not selected"}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-sm text-muted-foreground">Fees</span>
-                            <span className="text-sm font-medium">₹{selectedDoctor.fees}</span>
-                          </div>
-                          <div className="pt-2">
-                            <Button 
-                              onClick={handleBooking}
-                              className="w-full"
-                              size="lg"
-                              disabled={!selectedDate || !selectedDoctor || !selectedTime || isLoading}
-                            >
-                              {isLoading ? "Booking..." : "Confirm Appointment"}
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
                 </div>
               </div>
             </TabsContent>
-
-            <TabsContent value="appointments">
-              <div className="space-y-6">
-                <h1 className="text-3xl font-bold">My Appointments</h1>
-                
-                {/* Today's Ongoing Appointments */}
-                {ongoingAppointments.length > 0 && (
-                  <div>
-                    <h2 className="text-xl font-semibold mb-4">Today's Appointments</h2>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {ongoingAppointments.map(appointment => renderAppointmentCard(appointment))}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Upcoming Appointments */}
-                {upcomingAppointments.length > 0 && (
-                  <div>
-                    <h2 className="text-xl font-semibold mb-4">Upcoming Appointments</h2>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {upcomingAppointments.map(appointment => renderAppointmentCard(appointment))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Past Appointments */}
-                {pastAppointments.length > 0 && (
-                  <div>
-                    <h2 className="text-xl font-semibold mb-4">Past Appointments</h2>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {pastAppointments.map(appointment => renderAppointmentCard(appointment, true))}
-                    </div>
-                  </div>
-                )}
-
-                {/* No appointments message */}
-                {ongoingAppointments.length === 0 && upcomingAppointments.length === 0 && pastAppointments.length === 0 && (
-                  <Card className="border-dashed border-2">
-                    <CardContent className="py-8 text-center">
-                      <div className="flex justify-center mb-4">
-                        <CalendarIcon className="h-12 w-12 text-muted-foreground/50" />
-                      </div>
-                      <h3 className="text-lg font-medium mb-2">No appointments found</h3>
-                      <p className="text-muted-foreground max-w-md mx-auto mb-4">
-                        You don't have any appointments scheduled. Book your first appointment with a doctor to get started.
-                      </p>
-                      <Button onClick={() => setActiveTab("book")}>
-                        Book Appointment
-                      </Button>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            </TabsContent>
-          </Tabs>
-
-          {/* Prescription Dialog */}
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Prescription Details</DialogTitle>
-              </DialogHeader>
+            
+            <TabsContent value="appointments" className="space-y-6">
+              <h1 className="text-3xl font-bold">My Appointments</h1>
               
-              {selectedAppointment && (
+              {/* Ongoing appointments */}
+              {ongoingAppointments.length > 0 && (
                 <div className="space-y-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-medium">{selectedAppointment.doctorName}</h3>
-                      <p className="text-sm text-muted-foreground">{selectedAppointment.speciality}</p>
-                    </div>
-                    <Badge variant="outline">
-                      {formatDate(new Date(selectedAppointment.date))}
-                    </Badge>
-                  </div>
-                  
-                  <div className="border rounded-lg p-4 bg-muted/30">
-                    <h4 className="font-medium mb-2 flex items-center">
-                      <FileText className="h-4 w-4 mr-2" /> 
-                      Notes
-                    </h4>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedAppointment.notes || "No notes available"}
-                    </p>
-                  </div>
-                  
-                  <div className="border rounded-lg p-4">
-                    <h4 className="font-medium mb-2 flex items-center">
-                      <FileText className="h-4 w-4 mr-2" /> 
-                      Prescription
-                    </h4>
-                    <div className="bg-muted/30 p-3 rounded-md">
-                      <pre className="text-sm whitespace-pre-wrap">
-                        {selectedAppointment.prescription || "No prescription available"}
-                      </pre>
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-between mt-4">
-                    <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                      Close
-                    </Button>
-                    <Button onClick={() => handleBookAgain(selectedAppointment)}>
-                      <RefreshCw className="h-4 w-4 mr-2" /> Book Follow-up
-                    </Button>
+                  <h2 className="text-xl font-semibold">Today's Appointments</h2>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {ongoingAppointments.map(appointment => renderAppointmentCard(appointment))}
                   </div>
                 </div>
               )}
-            </DialogContent>
-          </Dialog>
+              
+              {/* Upcoming appointments */}
+              {upcomingAppointments.length > 0 && (
+                <div className="space-y-4">
+                  <h2 className="text-xl font-semibold">Upcoming Appointments</h2>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {upcomingAppointments.map(appointment => renderAppointmentCard(appointment))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Past appointments */}
+              {pastAppointments.length > 0 && (
+                <div className="space-y-4">
+                  <h2 className="text-xl font-semibold">Past Appointments</h2>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {pastAppointments.map(appointment => renderAppointmentCard(appointment, true))}
+                  </div>
+                </div>
+              )}
+              
+              {/* No appointments message */}
+              {appointments.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-10">
+                  <FileText className="h-16 w-16 text-muted-foreground mb-4" />
+                  <h3 className="text-xl font-medium mb-2">No appointments yet</h3>
+                  <p className="text-muted-foreground mb-4">You haven't booked any appointments yet.</p>
+                  <Button onClick={() => setActiveTab("book")}>Book Now</Button>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </main>
       </div>
+      
+
+      {/* Prescription Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Prescription & Notes</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <h3 className="text-sm font-medium mb-2">Doctor's Notes</h3>
+              <p className="text-sm text-muted-foreground bg-accent/50 p-3 rounded-md">
+                {selectedAppointment?.notes || "No notes available"}
+              </p>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium mb-2">Prescription</h3>
+              <pre className="text-sm text-muted-foreground font-mono bg-accent/50 p-3 rounded-md whitespace-pre-wrap">
+                {selectedAppointment?.prescription || "No prescription available"}
+              </pre>
+            </div>
+          </div>
+          <div className="flex justify-between">
+            <DialogClose asChild>
+              <Button variant="outline">Close</Button>
+            </DialogClose>
+            {selectedAppointment && (
+              <Button 
+                variant="secondary"
+                onClick={() => handleBookAgain(selectedAppointment)}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" /> Book Follow-up
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Chat Dialog */}
+      <Dialog open={isChatOpen} onOpenChange={setIsChatOpen}>
+        <DialogContent className="sm:max-w-md h-[80vh] flex flex-col">
+          <DialogHeader className="border-b pb-2">
+            <DialogTitle className="flex items-center">
+              <Avatar className="h-6 w-6 mr-2">
+                <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                  {selectedAppointment && getInitials(selectedAppointment.doctorName)}
+                </AvatarFallback>
+              </Avatar>
+              {selectedAppointment?.doctorName}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <ScrollArea className="flex-1 pt-4">
+            <div className="space-y-4 pb-4">
+              {selectedAppointment && getAppointmentChatMessages(selectedAppointment.id).map((message) => (
+                <div 
+                  key={message.id} 
+                  className={`flex ${message.sender === 'patient' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div 
+                    className={`max-w-[70%] p-3 rounded-lg ${
+                      message.sender === 'patient' 
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'bg-muted'
+                    }`}
+                  >
+                    <p className="text-sm">{message.message}</p>
+                    <span className="text-xs opacity-70 mt-1 block text-right">
+                      {formatMessageTime(message.timestamp)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              <div ref={chatEndRef} />
+            </div>
+          </ScrollArea>
+          
+          <div className="pt-4 border-t mt-auto">
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSendMessage();
+              }}
+              className="flex space-x-2"
+            >
+              <Textarea
+                placeholder="Type your message..."
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                className="min-h-10 flex-1"
+              />
+              <Button type="submit" size="icon" disabled={!newMessage.trim()}>
+                <Send className="h-4 w-4" />
+              </Button>
+            </form>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
