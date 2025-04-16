@@ -61,7 +61,7 @@ const Medications = () => {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 max-w-7xl mx-auto bg-gradient-to-r from-sky-100 to-white shadow-lg rounded-xl">
       <h1 className="text-4xl font-bold mb-6 text-center text-sky-700 drop-shadow-lg">
         🩺 Doctor's Medications
       </h1>
@@ -79,7 +79,7 @@ const Medications = () => {
         {medications.map((med, index) => (
           <div
             key={index}
-            className="bg-white rounded-xl p-5 border border-sky-100 shadow-xl hover:shadow-2xl transform hover:scale-[1.02] transition duration-300"
+            className="bg-white rounded-xl p-5 border border-sky-300 shadow-lg hover:shadow-2xl transform hover:scale-[1.02] transition duration-300"
           >
             <h2 className="text-xl font-semibold text-gray-800 mb-2">
               👤 {med.patient}
@@ -112,47 +112,47 @@ const Medications = () => {
               placeholder="Patient Name"
               value={form.patient}
               onChange={handleChange}
-              className="w-full mb-2 p-2 border rounded"
+              className="w-full mb-2 p-2 border rounded-lg border-sky-300"
             />
             <input
               name="name"
               placeholder="Medicine Name"
               value={form.name}
               onChange={handleChange}
-              className="w-full mb-2 p-2 border rounded"
+              className="w-full mb-2 p-2 border rounded-lg border-sky-300"
             />
             <input
               name="dosage"
               placeholder="Dosage (e.g., 500mg)"
               value={form.dosage}
               onChange={handleChange}
-              className="w-full mb-2 p-2 border rounded"
+              className="w-full mb-2 p-2 border rounded-lg border-sky-300"
             />
             <input
               name="frequency"
               placeholder="Frequency (e.g., Twice a day)"
               value={form.frequency}
               onChange={handleChange}
-              className="w-full mb-2 p-2 border rounded"
+              className="w-full mb-2 p-2 border rounded-lg border-sky-300"
             />
             <textarea
               name="notes"
               placeholder="Additional Notes"
               value={form.notes}
               onChange={handleChange}
-              className="w-full mb-2 p-2 border rounded"
+              className="w-full mb-2 p-2 border rounded-lg border-sky-300"
             ></textarea>
 
             <div className="flex justify-end space-x-2">
               <button
                 onClick={() => setShowModal(false)}
-                className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400 transition"
+                className="px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400 transition"
               >
                 Cancel
               </button>
               <button
                 onClick={handleAdd}
-                className="px-4 py-2 rounded bg-sky-600 text-white hover:bg-sky-700 transition"
+                className="px-4 py-2 rounded-lg bg-sky-600 text-white hover:bg-sky-700 transition"
               >
                 Add
               </button>
@@ -184,3 +184,4 @@ const Medications = () => {
 };
 
 export default Medications;
+
