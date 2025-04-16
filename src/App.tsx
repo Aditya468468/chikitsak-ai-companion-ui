@@ -29,6 +29,7 @@ import PatientManagement from "./pages/doctor/PatientManagement";
 import DoctorProfile from "./pages/doctor/Profile";
 import DoctorProfile from "./pages/doctor/Medications";
 import DoctorProfile from "./pages/doctor/Consult";
+import PrescriptionsPage from "@/pages/doctor/prescriptions"
 // Shared pages
 import NotificationCenter from "./pages/NotificationCenter";
 
@@ -62,6 +63,7 @@ const App = () => (
             <Route path="/notifications" element={<NotificationCenter />} />
             <Route path="/doctor/consult" element={<Consult />} />
             <Route path="/doctor/medications" element={<Medications />} />
+            <Route path="/doctor/prescriptions" element={<PrescriptionsPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
