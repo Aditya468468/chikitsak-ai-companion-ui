@@ -1,150 +1,142 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/components/ui/use-toast";
-import { supabase } from "@/lib/supabaseClient"; // Assuming this is set up
-
-type Medication = {
-  id: string;
-  name: string;
-  dosage: string;
-  frequency: string;
-  notes?: string;
-};
+import React, { useState } from "react";
 
 const Medications = () => {
-  const [medications, setMedications] = useState<Medication[]>([]);
-  const [newMed, setNewMed] = useState<Medication>({
-    id: "",
+  const [medications, setMedications] = useState([
+    {
+      patient: "Aarav Sharma",
+      name: "Paracetamol",
+      dosage: "500mg",
+      frequency: "Twice a day",
+      notes: "After meals",
+    },
+    {
+      patient: "Ishita Verma",
+      name: "Amoxicillin",
+      dosage: "250mg",
+      frequency: "Thrice a day",
+      notes: "Take with food",
+    },
+  ]);
+
+  const [showModal, setShowModal] = useState(false);
+  const [form, setForm] = useState({
+    patient: "",
     name: "",
     dosage: "",
     frequency: "",
     notes: "",
   });
-  const [searchQuery, setSearchQuery] = useState("");
 
-  // Fetch medications from Supabase
-  useEffect(() => {
-    const fetchMedications = async () => {
-      const { data, error } = await supabase.from("medications").select("*");
-      if (error) {
-        toast({ title: "Error fetching medications" });
-      } else {
-        setMedications(data);
-      }
-    };
-
-    fetchMedications();
-  }, []);
-
-  // Add new medication to Supabase
-  const handleAddMedication = async () => {
-    if (!newMed.name || !newMed.dosage || !newMed.frequency) {
-      toast({ title: "Please fill all required fields" });
-      return;
-    }
-
-    const { data, error } = await supabase.from("medications").insert([newMed]);
-    if (error) {
-      toast({ title: "Error adding medication" });
-    } else {
-      setMedications((prev) => [...prev, data[0]]);
-      setNewMed({ id: "", name: "", dosage: "", frequency: "", notes: "" });
-      toast({ title: "Medication added successfully" });
-    }
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // Delete medication from Supabase
-  const handleDeleteMedication = async (id: string) => {
-    const { error } = await supabase.from("medications").delete().match({ id });
-    if (error) {
-      toast({ title: "Error deleting medication" });
-    } else {
-      setMedications(medications.filter((med) => med.id !== id));
-      toast({ title: "Medication deleted successfully" });
-    }
+  const handleAdd = () => {
+    setMedications([...medications, form]);
+    setForm({ patient: "", name: "", dosage: "", frequency: "", notes: "" });
+    setShowModal(false);
   };
-
-  // Filter medications by search query
-  const filteredMedications = medications.filter((med) =>
-    med.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-3xl font-bold">Prescribed Medications</h1>
+    <div className="p-6 max-w-6xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6 text-center text-blue-700">
+        Medications List
+      </h1>
 
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button>Add Medication</Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <h2 className="text-xl font-semibold mb-4">New Medication</h2>
-            <div className="space-y-3">
-              <Input
-                placeholder="Medication name"
-                value={newMed.name}
-                onChange={(e) => setNewMed({ ...newMed, name: e.target.value })}
-              />
-              <Input
-                placeholder="Dosage (e.g. 500mg)"
-                value={newMed.dosage}
-                onChange={(e) => setNewMed({ ...newMed, dosage: e.target.value })}
-              />
-              <Input
-                placeholder="Frequency (e.g. twice a day)"
-                value={newMed.frequency}
-                onChange={(e) => setNewMed({ ...newMed, frequency: e.target.value })}
-              />
-              <Textarea
-                placeholder="Additional notes"
-                value={newMed.notes}
-                onChange={(e) => setNewMed({ ...newMed, notes: e.target.value })}
-              />
-              <Button onClick={handleAddMedication} className="w-full">
+      <div className="flex justify-end mb-6">
+        <button
+          onClick={() => setShowModal(true)}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg shadow"
+        >
+          + Add Medication
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {medications.map((med, index) => (
+          <div
+            key={index}
+            className="bg-white shadow-lg rounded-lg p-5 border-l-4 border-blue-500"
+          >
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">
+              {med.patient}
+            </h2>
+            <p className="text-sm text-gray-500 mb-1">
+              <strong>Medicine:</strong> {med.name}
+            </p>
+            <p className="text-sm text-gray-500 mb-1">
+              <strong>Dosage:</strong> {med.dosage}
+            </p>
+            <p className="text-sm text-gray-500 mb-1">
+              <strong>Frequency:</strong> {med.frequency}
+            </p>
+            <p className="text-sm text-gray-500">
+              <strong>Notes:</strong> {med.notes}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl w-[90%] max-w-md shadow-lg">
+            <h2 className="text-xl font-bold mb-4 text-blue-600">
+              Add New Medication
+            </h2>
+            <input
+              name="patient"
+              placeholder="Patient Name"
+              value={form.patient}
+              onChange={handleChange}
+              className="w-full mb-2 p-2 border rounded"
+            />
+            <input
+              name="name"
+              placeholder="Medicine Name"
+              value={form.name}
+              onChange={handleChange}
+              className="w-full mb-2 p-2 border rounded"
+            />
+            <input
+              name="dosage"
+              placeholder="Dosage (e.g., 500mg)"
+              value={form.dosage}
+              onChange={handleChange}
+              className="w-full mb-2 p-2 border rounded"
+            />
+            <input
+              name="frequency"
+              placeholder="Frequency (e.g., Twice a day)"
+              value={form.frequency}
+              onChange={handleChange}
+              className="w-full mb-2 p-2 border rounded"
+            />
+            <textarea
+              name="notes"
+              placeholder="Additional Notes"
+              value={form.notes}
+              onChange={handleChange}
+              className="w-full mb-2 p-2 border rounded"
+            ></textarea>
+
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setShowModal(false)}
+                className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAdd}
+                className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+              >
                 Add
-              </Button>
+              </button>
             </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Search Input */}
-      <Input
-        placeholder="Search medications"
-        className="mb-4"
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-      />
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredMedications.length === 0 ? (
-          <p className="text-gray-500">No medications found.</p>
-        ) : (
-          filteredMedications.map((med) => (
-            <Card key={med.id}>
-              <CardContent className="p-4">
-                <h3 className="text-lg font-semibold">{med.name}</h3>
-                <p className="text-sm text-gray-600">Dosage: {med.dosage}</p>
-                <p className="text-sm text-gray-600">Frequency: {med.frequency}</p>
-                {med.notes && <p className="text-sm text-gray-500 mt-2">{med.notes}</p>}
-                <div className="flex justify-between mt-4">
-                  <Button variant="outline" onClick={() => handleDeleteMedication(med.id)}>
-                    Delete
-                  </Button>
-                  <Button variant="outline" onClick={() => toast({ title: "Edit functionality coming soon!" })}>
-                    Edit
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
