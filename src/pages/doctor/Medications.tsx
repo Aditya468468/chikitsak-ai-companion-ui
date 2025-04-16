@@ -48,7 +48,9 @@ const Medications = () => {
     notes: "",
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
@@ -60,14 +62,14 @@ const Medications = () => {
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      <h1 className="text-4xl font-bold mb-6 text-center text-health-blue drop-shadow-lg">
+      <h1 className="text-4xl font-bold mb-6 text-center text-sky-700 drop-shadow-lg">
         🩺 Doctor's Medications
       </h1>
 
       <div className="flex justify-end mb-6">
         <button
           onClick={() => setShowModal(true)}
-          className="bg-health-blue text-white font-semibold hover:bg-blue-500 transition px-5 py-2 rounded-xl shadow-lg hover:scale-105 duration-200"
+          className="bg-sky-500 hover:bg-sky-600 text-white px-5 py-2 rounded-xl shadow-md hover:scale-105 transition duration-300"
         >
           + Add Medication
         </button>
@@ -77,7 +79,7 @@ const Medications = () => {
         {medications.map((med, index) => (
           <div
             key={index}
-            className="bg-white rounded-xl p-5 border border-gray-200 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition duration-300"
+            className="bg-white rounded-xl p-5 border border-sky-100 shadow-xl hover:shadow-2xl transform hover:scale-[1.02] transition duration-300"
           >
             <h2 className="text-xl font-semibold text-gray-800 mb-2">
               👤 {med.patient}
@@ -100,9 +102,9 @@ const Medications = () => {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-health-lightblue p-6 rounded-2xl w-[90%] max-w-md shadow-2xl border-2 border-health-blue">
-            <h2 className="text-2xl font-bold mb-4 text-health-blue text-center">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl w-[90%] max-w-md shadow-2xl border border-blue-300 transform scale-95 animate-zoomIn">
+            <h2 className="text-2xl font-bold mb-4 text-sky-600">
               Add New Medication
             </h2>
             <input
@@ -110,47 +112,47 @@ const Medications = () => {
               placeholder="Patient Name"
               value={form.patient}
               onChange={handleChange}
-              className="w-full mb-2 p-2 border border-blue-200 rounded-md focus:outline-none focus:ring-2 focus:ring-health-blue"
+              className="w-full mb-2 p-2 border rounded"
             />
             <input
               name="name"
               placeholder="Medicine Name"
               value={form.name}
               onChange={handleChange}
-              className="w-full mb-2 p-2 border border-blue-200 rounded-md focus:outline-none focus:ring-2 focus:ring-health-blue"
+              className="w-full mb-2 p-2 border rounded"
             />
             <input
               name="dosage"
               placeholder="Dosage (e.g., 500mg)"
               value={form.dosage}
               onChange={handleChange}
-              className="w-full mb-2 p-2 border border-blue-200 rounded-md focus:outline-none focus:ring-2 focus:ring-health-blue"
+              className="w-full mb-2 p-2 border rounded"
             />
             <input
               name="frequency"
               placeholder="Frequency (e.g., Twice a day)"
               value={form.frequency}
               onChange={handleChange}
-              className="w-full mb-2 p-2 border border-blue-200 rounded-md focus:outline-none focus:ring-2 focus:ring-health-blue"
+              className="w-full mb-2 p-2 border rounded"
             />
             <textarea
               name="notes"
               placeholder="Additional Notes"
               value={form.notes}
               onChange={handleChange}
-              className="w-full mb-4 p-2 border border-blue-200 rounded-md focus:outline-none focus:ring-2 focus:ring-health-blue"
+              className="w-full mb-2 p-2 border rounded"
             ></textarea>
 
             <div className="flex justify-end space-x-2">
               <button
                 onClick={() => setShowModal(false)}
-                className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400"
+                className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400 transition"
               >
                 Cancel
               </button>
               <button
                 onClick={handleAdd}
-                className="px-4 py-2 rounded bg-health-blue text-white font-semibold hover:bg-blue-500 transition"
+                className="px-4 py-2 rounded bg-sky-600 text-white hover:bg-sky-700 transition"
               >
                 Add
               </button>
@@ -158,9 +160,27 @@ const Medications = () => {
           </div>
         </div>
       )}
+
+      {/* Tailwind custom animation */}
+      <style>
+        {`
+          @keyframes zoomIn {
+            from {
+              transform: scale(0.8);
+              opacity: 0;
+            }
+            to {
+              transform: scale(1);
+              opacity: 1;
+            }
+          }
+          .animate-zoomIn {
+            animation: zoomIn 0.25s ease-out forwards;
+          }
+        `}
+      </style>
     </div>
   );
 };
 
 export default Medications;
-
