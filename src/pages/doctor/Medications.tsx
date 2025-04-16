@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { useSpeechSynthesis } from "react-speech-kit";
 
 const Medications = () => {
   const [medications, setMedications] = useState([
@@ -49,7 +48,7 @@ const Medications = () => {
     notes: "",
   });
 
-  const { speak } = useSpeechSynthesis();
+  // const { speak } = useSpeechSynthesis();  // Removed speech synthesis
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -61,10 +60,10 @@ const Medications = () => {
     setShowModal(false);
   };
 
-  const handleSpeak = (med: any) => {
-    const text = `Patient ${med.patient}. Medication: ${med.name}, ${med.dosage}, ${med.frequency}. Notes: ${med.notes}`;
-    speak({ text });
-  };
+  // const handleSpeak = (med: any) => {  // Removed text-to-speech functionality
+  //   const text = `Patient ${med.patient}. Medication: ${med.name}, ${med.dosage}, ${med.frequency}. Notes: ${med.notes}`;
+  //   speak({ text });
+  // };
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -102,12 +101,13 @@ const Medications = () => {
             <p className="text-sm text-gray-600 mb-3">
               <strong>📝 Notes:</strong> {med.notes}
             </p>
-            <button
+            {/* Removed the Speak button */}
+            {/* <button
               onClick={() => handleSpeak(med)}
               className="mt-2 text-blue-600 hover:underline text-sm"
             >
               🔊 Speak
-            </button>
+            </button> */}
           </div>
         ))}
       </div>
@@ -177,4 +177,3 @@ const Medications = () => {
 };
 
 export default Medications;
-
