@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -26,9 +25,10 @@ import PatientProfile from "./pages/patient/Profile";
 import DoctorDashboard from "./pages/doctor/Dashboard";
 import PatientManagement from "./pages/doctor/PatientManagement";
 import DoctorProfile from "./pages/doctor/Profile";
-import DoctorProfile from "./pages/doctor/Medications";
-import DoctorProfile from "./pages/doctor/Consult";
-import PrescriptionsPage from "@/pages/doctor/prescriptions"
+import DoctorMedications from "./pages/doctor/Medications";  // Renamed from DoctorProfile
+import DoctorConsult from "./pages/doctor/Consult";  
+import PrescriptionsPage from "@/pages/doctor/prescriptions";
+
 // Shared pages
 import NotificationCenter from "./pages/NotificationCenter";
 
@@ -60,8 +60,8 @@ const App = () => (
             <Route path="/doctor/patients" element={<PatientManagement />} />
             <Route path="/doctor/profile" element={<DoctorProfile />} />
             <Route path="/notifications" element={<NotificationCenter />} />
-            <Route path="/doctor/consult" element={<Consult />} />
-            <Route path="/doctor/medications" element={<Medications />} />
+            <Route path="/doctor/consult" element={<DoctorConsult />} />
+            <Route path="/doctor/medications" element={<DoctorMedications />} />  {/* Updated import */}
             <Route path="/doctor/prescriptions" element={<PrescriptionsPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
