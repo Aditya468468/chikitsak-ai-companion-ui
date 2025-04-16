@@ -7,11 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Search, MapPin, Phone, Clock, Calendar as CalendarIcon } from "lucide-react";
+import { 
+  Search, MapPin, Phone, Clock, Calendar as CalendarIcon, 
+  Star, Award, FileText, User, Trash, RefreshCw
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 interface Doctor {
   id: number;
@@ -34,9 +39,11 @@ interface Appointment {
   time: string;
   speciality: string;
   status: "upcoming" | "completed" | "cancelled";
+  notes?: string;
+  prescription?: string;
 }
 
-// Mock data with Indian names
+// Mock data with Indian names and better images
 const mockDoctors: Doctor[] = [
   {
     id: 1,
@@ -46,7 +53,7 @@ const mockDoctors: Doctor[] = [
     rating: 4.8,
     location: "Apollo Clinic, Koramangala",
     availableTimes: ["10:00 AM", "11:00 AM", "2:00 PM", "4:00 PM"],
-    image: "/api/placeholder/100/100",
+    image: "https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/person.svg", // Fallback SVG
     fees: 500,
     languages: ["Hindi", "English", "Bengali"]
   },
@@ -58,7 +65,7 @@ const mockDoctors: Doctor[] = [
     rating: 4.9,
     location: "Fortis Hospital, Bannerghatta Road",
     availableTimes: ["9:00 AM", "11:30 AM", "1:00 PM", "3:00 PM"],
-    image: "/api/placeholder/100/100",
+    image: "https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/person.svg", // Fallback SVG
     fees: 1200,
     languages: ["Hindi", "English", "Gujarati"]
   },
@@ -70,7 +77,7 @@ const mockDoctors: Doctor[] = [
     rating: 4.7,
     location: "Manipal Hospital, Indiranagar",
     availableTimes: ["10:30 AM", "12:00 PM", "3:30 PM", "5:00 PM"],
-    image: "/api/placeholder/100/100",
+    image: "https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/person.svg", // Fallback SVG
     fees: 800,
     languages: ["Hindi", "English", "Marathi"]
   },
@@ -82,7 +89,7 @@ const mockDoctors: Doctor[] = [
     rating: 4.6,
     location: "Narayana Health, Whitefield",
     availableTimes: ["8:30 AM", "10:30 AM", "2:30 PM", "4:30 PM"],
-    image: "/api/placeholder/100/100",
+    image: "https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/person.svg", // Fallback SVG
     fees: 1000,
     languages: ["Hindi", "English", "Tamil"]
   },
@@ -94,7 +101,7 @@ const mockDoctors: Doctor[] = [
     rating: 4.8,
     location: "Columbia Asia, Yeshwantpur",
     availableTimes: ["9:00 AM", "11:00 AM", "1:30 PM", "4:00 PM"],
-    image: "/api/placeholder/100/100",
+    image: "https://cdnjs.cloudflare.com/ajax/libs/octicons/8.5.0/svg/person.svg", // Fallback SVG
     fees: 900,
     languages: ["Hindi", "English", "Telugu"]
   }
@@ -109,7 +116,9 @@ const mockPreviousAppointments: Appointment[] = [
     date: new Date(2025, 3, 10),
     time: "11:00 AM",
     speciality: "General Physician",
-    status: "completed"
+    status: "completed",
+    notes: "Patient complained of persistent cough and mild fever. Prescribed antibiotics and cough syrup.",
+    prescription: "1. Azithromycin 500mg - Once daily for 3 days\n2. Bromhexine Syrup - 10ml thrice daily\n3. Paracetamol 500mg - SOS for fever"
   },
   {
     id: 102,
@@ -118,7 +127,9 @@ const mockPreviousAppointments: Appointment[] = [
     date: new Date(2025, 3, 5),
     time: "3:30 PM",
     speciality: "Dermatologist",
-    status: "completed"
+    status: "completed",
+    notes: "Patient has eczema on both arms. Prescribed topical steroids and moisturizer.",
+    prescription: "1. Mometasone Furoate 0.1% cream - Apply twice daily\n2. Cetaphil Moisturizing Lotion - Apply liberally after bath\n3. Avoid hot water for bathing"
   }
 ];
 
@@ -136,6 +147,15 @@ const specialities = [
   "ENT Specialist"
 ];
 
+// Generate avatar initials from name
+const getInitials = (name) => {
+  return name
+    .split(' ')
+    .map(part => part[0])
+    .join('')
+    .toUpperCase();
+};
+
 export default function BookAppointment() {
   useRequireAuth("patient");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -143,8 +163,36 @@ export default function BookAppointment() {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSpeciality, setSelectedSpeciality] = useState("All Specialities");
-  const [appointments, setAppointments] = useState<Appointment[]>([...mockPreviousAppointments]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  // Load appointments from localStorage on component mount
+  useEffect(() => {
+    const savedAppointments = localStorage.getItem('appointments');
+    if (savedAppointments) {
+      try {
+        const parsedAppointments = JSON.parse(savedAppointments).map(app => ({
+          ...app,
+          date: new Date(app.date) // Convert date string back to Date object
+        }));
+        setAppointments(parsedAppointments);
+      } catch (error) {
+        console.error("Error parsing saved appointments:", error);
+        setAppointments([...mockPreviousAppointments]);
+      }
+    } else {
+      setAppointments([...mockPreviousAppointments]);
+    }
+  }, []);
+
+  // Save appointments to localStorage whenever they change
+  useEffect(() => {
+    if (appointments.length > 0) {
+      localStorage.setItem('appointments', JSON.stringify(appointments));
+    }
+  }, [appointments]);
 
   // Filter doctors based on search and speciality
   const filteredDoctors = mockDoctors.filter(doctor => {
@@ -162,6 +210,11 @@ export default function BookAppointment() {
   const upcomingAppointments = appointments.filter(appointment => 
     appointment.status === "upcoming" && 
     new Date(appointment.date) >= new Date()
+  );
+
+  // Get past appointments
+  const pastAppointments = appointments.filter(appointment => 
+    appointment.status === "completed"
   );
 
   const handleBooking = () => {
@@ -200,6 +253,40 @@ export default function BookAppointment() {
       setSelectedTime(null);
       setIsLoading(false);
     }, 1500);
+  };
+
+  // Handle appointment cancellation
+  const handleCancelAppointment = (appointmentId: number) => {
+    setAppointments(prev => 
+      prev.map(app => 
+        app.id === appointmentId 
+          ? { ...app, status: "cancelled" } 
+          : app
+      )
+    );
+    
+    toast({
+      title: "Appointment Cancelled",
+      description: "Your appointment has been cancelled successfully.",
+    });
+  };
+
+  // Handle booking again (reuse previous doctor info)
+  const handleBookAgain = (appointment: Appointment) => {
+    const doctor = mockDoctors.find(d => d.id === appointment.doctorId);
+    if (doctor) {
+      setSelectedDoctor(doctor);
+      setSelectedDate(new Date());
+      setSelectedTime(null);
+      // Switch to book tab
+      document.querySelector('button[value="book"]')?.click();
+    }
+  };
+
+  // Handle viewing prescription
+  const handleViewPrescription = (appointment: Appointment) => {
+    setSelectedAppointment(appointment);
+    setIsDialogOpen(true);
   };
 
   // Format date for display
@@ -277,21 +364,24 @@ export default function BookAppointment() {
                                 }}
                               >
                                 <div className="flex-shrink-0 mr-4">
-                                  <img 
-                                    src={doctor.image} 
-                                    alt={doctor.name} 
-                                    className="w-14 h-14 rounded-full object-cover"
-                                  />
+                                  <Avatar className="h-16 w-16 border-2 border-primary/20">
+                                    <AvatarImage src={doctor.image} alt={doctor.name} />
+                                    <AvatarFallback className="bg-primary/10 text-primary">
+                                      {getInitials(doctor.name)}
+                                    </AvatarFallback>
+                                  </Avatar>
                                 </div>
                                 <div className="flex-grow">
                                   <div className="flex justify-between items-start">
                                     <h3 className="font-semibold text-lg">{doctor.name}</h3>
                                     <Badge variant="outline" className="font-normal">₹{doctor.fees}</Badge>
                                   </div>
-                                  <p className="text-sm text-muted-foreground mb-1">{doctor.speciality} • {doctor.experience} years exp</p>
+                                  <p className="text-sm text-muted-foreground mb-1">
+                                    {doctor.speciality} • {doctor.experience} years exp
+                                  </p>
                                   <div className="flex items-center gap-1 mb-2">
-                                    <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full font-medium">
-                                      ★ {doctor.rating}
+                                    <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full font-medium flex items-center">
+                                      <Star className="h-3 w-3 mr-1 fill-green-800" /> {doctor.rating}
                                     </span>
                                     <span className="text-xs text-muted-foreground">
                                       Speaks: {doctor.languages.join(", ")}
@@ -300,6 +390,16 @@ export default function BookAppointment() {
                                   <div className="flex items-center text-xs text-muted-foreground">
                                     <MapPin className="h-3 w-3 mr-1" /> {doctor.location}
                                   </div>
+                                  {doctor.id === 1 && (
+                                    <Badge className="mt-2 bg-blue-100 text-blue-800 hover:bg-blue-200">
+                                      <Award className="h-3 w-3 mr-1" /> Top Rated
+                                    </Badge>
+                                  )}
+                                  {doctor.id === 2 && (
+                                    <Badge variant="secondary" className="mt-2">
+                                      <Award className="h-3 w-3 mr-1" /> Specialist
+                                    </Badge>
+                                  )}
                                 </div>
                               </div>
                             ))
@@ -421,18 +521,31 @@ export default function BookAppointment() {
                         <Card key={appointment.id} className="border-l-4 border-l-primary">
                           <CardContent className="pt-6">
                             <div className="flex justify-between items-start mb-2">
-                              <h3 className="font-semibold">{appointment.doctorName}</h3>
+                              <div className="flex items-center">
+                                <Avatar className="h-8 w-8 mr-2">
+                                  <AvatarFallback className="bg-primary/10 text-primary">
+                                    {getInitials(appointment.doctorName)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <h3 className="font-semibold">{appointment.doctorName}</h3>
+                              </div>
                               <Badge variant="outline" className="font-normal">{appointment.speciality}</Badge>
                             </div>
                             <div className="flex items-center text-sm text-muted-foreground mb-4">
                               <CalendarIcon className="h-3 w-3 mr-1" />
-                              {formatDate(appointment.date)} • {appointment.time}
+                              {formatDate(new Date(appointment.date))} • {appointment.time}
                             </div>
                             <div className="flex justify-between">
                               <Button variant="outline" size="sm">
                                 <Phone className="h-3 w-3 mr-1" /> Contact
                               </Button>
-                              <Button variant="destructive" size="sm">Cancel</Button>
+                              <Button 
+                                variant="destructive" 
+                                size="sm"
+                                onClick={() => handleCancelAppointment(appointment.id)}
+                              >
+                                <Trash className="h-3 w-3 mr-1" /> Cancel
+                              </Button>
                             </div>
                           </CardContent>
                         </Card>
@@ -441,31 +554,52 @@ export default function BookAppointment() {
                   </div>
                 )}
 
-                <div>
-                  <h2 className="text-xl font-semibold mb-4">Past Appointments</h2>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {appointments.filter(a => a.status === "completed").map(appointment => (
-                      <Card key={appointment.id} className="border-l-4 border-l-muted">
-                        <CardContent className="pt-6">
-                          <div className="flex justify-between items-start mb-2">
-                            <h3 className="font-semibold">{appointment.doctorName}</h3>
-                            <Badge variant="outline" className="font-normal">{appointment.speciality}</Badge>
-                          </div>
-                          <div className="flex items-center text-sm text-muted-foreground mb-4">
-                            <CalendarIcon className="h-3 w-3 mr-1" />
-                            {formatDate(appointment.date)} • {appointment.time}
-                          </div>
-                          <div className="flex justify-between">
-                            <Button variant="outline" size="sm">View Prescription</Button>
-                            <Button variant="secondary" size="sm">Book Again</Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                {pastAppointments.length > 0 && (
+                  <div>
+                    <h2 className="text-xl font-semibold mb-4">Past Appointments</h2>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {pastAppointments.map(appointment => (
+                        <Card key={appointment.id} className="border-l-4 border-l-muted">
+                          <CardContent className="pt-6">
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="flex items-center">
+                                <Avatar className="h-8 w-8 mr-2">
+                                  <AvatarFallback className="bg-primary/10 text-primary">
+                                    {getInitials(appointment.doctorName)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <h3 className="font-semibold">{appointment.doctorName}</h3>
+                              </div>
+                              <Badge variant="outline" className="font-normal">{appointment.speciality}</Badge>
+                            </div>
+                            <div className="flex items-center text-sm text-muted-foreground mb-4">
+                              <CalendarIcon className="h-3 w-3 mr-1" />
+                              {formatDate(new Date(appointment.date))} • {appointment.time}
+                            </div>
+                            <div className="flex justify-between">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleViewPrescription(appointment)}
+                              >
+                                <FileText className="h-3 w-3 mr-1" /> View Prescription
+                              </Button>
+                              <Button 
+                                variant="secondary" 
+                                size="sm"
+                                onClick={() => handleBookAgain(appointment)}
+                              >
+                                <RefreshCw className="h-3 w-3 mr-1" /> Book Again
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
                 
-                {upcomingAppointments.length === 0 && appointments.filter(a => a.status === "completed").length === 0 && (
+                {upcomingAppointments.length === 0 && pastAppointments.length === 0 && (
                   <Card className="p-10 text-center">
                     <CardContent>
                       <p className="text-muted-foreground mb-4">You don't have any appointments yet</p>
@@ -478,6 +612,58 @@ export default function BookAppointment() {
               </div>
             </TabsContent>
           </Tabs>
+          
+          {/* Prescription Dialog */}
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Prescription Details</DialogTitle>
+              </DialogHeader>
+              {selectedAppointment && (
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <User className="h-5 w-5 text-muted-foreground" />
+                    <div className="font-medium">{selectedAppointment.doctorName}</div>
+                    <Badge variant="outline">{selectedAppointment.speciality}</Badge>
+                  </div>
+                  
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <CalendarIcon className="h-4 w-4 mr-2" />
+                    {formatDate(new Date(selectedAppointment.date))} at {selectedAppointment.time}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Doctor's Notes</h4>
+                    <p className="text-sm bg-muted p-3 rounded-md">
+                      {selectedAppointment.notes || "No notes available"}
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Prescription</h4>
+                    <pre className="text-sm bg-muted p-3 rounded-md whitespace-pre-wrap font-sans">
+                      {selectedAppointment.prescription || "No prescription available"}
+                    </pre>
+                  </div>
+                  
+                  <div className="flex justify-end space-x-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setIsDialogOpen(false)}
+                    >
+                      Close
+                    </Button>
+                    <Button 
+                      variant="default"
+                      onClick={() => handleBookAgain(selectedAppointment)}
+                    >
+                      Book Follow-up
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
         </main>
       </div>
     </div>
