@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 const mockPatients = [
   { 
     id: 1, 
-    name: "John Smith", 
+    name: "Somesh ", 
     age: 42, 
     lastVisit: "2025-04-10", 
     condition: "Hypertension",
@@ -25,7 +25,7 @@ const mockPatients = [
   },
   { 
     id: 2, 
-    name: "Emily Johnson", 
+    name: "Priya Jha", 
     age: 35, 
     lastVisit: "2025-04-12", 
     condition: "Anxiety",
@@ -34,7 +34,7 @@ const mockPatients = [
   },
   { 
     id: 3, 
-    name: "Michael Brown", 
+    name: "Sunidhi Sharma", 
     age: 58, 
     lastVisit: "2025-04-05", 
     condition: "Diabetes",
@@ -43,7 +43,7 @@ const mockPatients = [
   },
   { 
     id: 4, 
-    name: "Sarah Davis", 
+    name: "Amit Yadav", 
     age: 29, 
     lastVisit: "2025-04-14", 
     condition: "Depression",
@@ -52,7 +52,7 @@ const mockPatients = [
   },
   { 
     id: 5, 
-    name: "Thomas Wilson", 
+    name: "Mohit Kumar", 
     age: 45, 
     lastVisit: "2025-04-08", 
     condition: "Back pain",
