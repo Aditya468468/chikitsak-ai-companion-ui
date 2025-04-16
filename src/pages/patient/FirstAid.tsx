@@ -258,7 +258,7 @@ export default function FirstAid() {
                   <h3 className="font-medium text-yellow-800">Important Notice</h3>
                   <p className="text-sm text-yellow-700">
                     This first aid guide is for informational purposes only and is not a substitute for professional medical advice, 
-                    diagnosis, or treatment. In case of emergency, call 911 or your local emergency number immediately.
+                    diagnosis, or treatment. In case of emergency, call 112 or your local emergency number immediately.
                   </p>
                 </div>
               </div>
