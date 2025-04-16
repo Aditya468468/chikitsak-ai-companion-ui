@@ -27,7 +27,8 @@ import PatientProfile from "./pages/patient/Profile";
 import DoctorDashboard from "./pages/doctor/Dashboard";
 import PatientManagement from "./pages/doctor/PatientManagement";
 import DoctorProfile from "./pages/doctor/Profile";
-
+import DoctorProfile from "./pages/doctor/Medications";
+import DoctorProfile from "./pages/doctor/Consult";
 // Shared pages
 import NotificationCenter from "./pages/NotificationCenter";
 
