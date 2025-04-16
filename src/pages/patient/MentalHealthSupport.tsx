@@ -1,16 +1,18 @@
-
 import { useState } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Brain, Heart, Smile, Moon, Plus, AlertCircle } from "lucide-react";
+import { Brain, Heart, Smile, Moon, Plus, AlertCircle, Calendar, ArrowLeft } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Slider } from "@/components/ui/slider";
 
 interface Resource {
   title: string;
@@ -65,6 +67,147 @@ const getGADInterpretation = (score: number) => {
   return { level: "Severe Anxiety", severity: "severe" };
 };
 
+// Meditation exercises data
+const meditationExercises = [
+  {
+    title: "Mindful Breathing",
+    duration: "5 minutes",
+    description: "Focus on your breath to calm your mind and reduce stress.",
+    steps: [
+      "Find a comfortable seated position.",
+      "Close your eyes and take a deep breath in through your nose.",
+      "Exhale slowly through your mouth.",
+      "Continue breathing deeply, focusing on the sensation of air entering and leaving your body.",
+      "If your mind wanders, gently bring your attention back to your breath.",
+      "Continue for 5 minutes."
+    ]
+  },
+  {
+    title: "Body Scan Meditation",
+    duration: "10 minutes",
+    description: "Progressively scan your body to release tension and promote relaxation.",
+    steps: [
+      "Lie down or sit in a comfortable position.",
+      "Close your eyes and take a few deep breaths.",
+      "Bring your attention to your feet, noticing any sensations.",
+      "Slowly move your attention up your body (ankles, calves, knees, etc.).",
+      "For any area of tension, breathe into that area and imagine releasing the tension.",
+      "Continue until you've scanned your entire body."
+    ]
+  },
+  {
+    title: "Loving-Kindness Meditation",
+    duration: "7 minutes",
+    description: "Cultivate feelings of compassion for yourself and others.",
+    steps: [
+      "Find a comfortable position and close your eyes.",
+      "Begin by directing loving thoughts toward yourself: 'May I be happy, may I be healthy, may I be safe.'",
+      "Extend these wishes to someone you care about.",
+      "Gradually extend these wishes to acquaintances, then to difficult people in your life.",
+      "Finally, extend these wishes to all beings."
+    ]
+  }
+];
+
+// Relaxation techniques data
+const relaxationTechniques = [
+  {
+    title: "Progressive Muscle Relaxation",
+    duration: "15 minutes",
+    description: "Systematically tense and relax muscle groups to reduce physical tension.",
+    steps: [
+      "Sit or lie down in a comfortable position.",
+      "Starting with your feet, tense the muscles as tightly as you can for 5 seconds.",
+      "Release the tension and notice how your muscles feel when relaxed.",
+      "Move up to your calves, then thighs, and continue through your body.",
+      "End with your facial muscles, tensing and relaxing your forehead, cheeks, and jaw."
+    ]
+  },
+  {
+    title: "4-7-8 Breathing Technique",
+    duration: "5 minutes",
+    description: "A breathing pattern that promotes relaxation and can help with anxiety.",
+    steps: [
+      "Sit in a comfortable position with your back straight.",
+      "Place the tip of your tongue against the ridge behind your upper front teeth.",
+      "Exhale completely through your mouth, making a whoosh sound.",
+      "Close your mouth and inhale through your nose for a count of 4.",
+      "Hold your breath for a count of 7.",
+      "Exhale completely through your mouth for a count of 8.",
+      "Repeat this cycle 3-4 times."
+    ]
+  },
+  {
+    title: "Guided Visualization",
+    duration: "10 minutes",
+    description: "Use your imagination to create a peaceful scene or experience.",
+    steps: [
+      "Find a quiet, comfortable place to sit or lie down.",
+      "Close your eyes and take several deep breaths.",
+      "Imagine a peaceful place (beach, forest, garden, etc.).",
+      "Engage all your senses: What do you see, hear, smell, feel?",
+      "Spend time exploring this peaceful place in your mind.",
+      "When ready, slowly bring your awareness back to the present."
+    ]
+  }
+];
+
+// Self-care tips data
+const selfCareTips = [
+  {
+    title: "Physical Self-Care",
+    description: "Taking care of your body to improve mental well-being.",
+    tips: [
+      "Get 7-9 hours of sleep each night",
+      "Eat nutritious meals regularly",
+      "Exercise for at least 30 minutes daily",
+      "Stay hydrated throughout the day",
+      "Take breaks from screens and digital devices"
+    ]
+  },
+  {
+    title: "Emotional Self-Care",
+    description: "Practices that help you connect with and process your emotions.",
+    tips: [
+      "Journal about your feelings regularly",
+      "Talk to a trusted friend about your emotions",
+      "Practice mindfulness or meditation",
+      "Engage in creative expression (art, music, writing)",
+      "Allow yourself to cry when needed"
+    ]
+  },
+  {
+    title: "Social Self-Care",
+    description: "Maintaining healthy relationships and social connections.",
+    tips: [
+      "Spend time with supportive friends and family",
+      "Set and maintain healthy boundaries",
+      "Ask for help when you need it",
+      "Join groups or communities with shared interests",
+      "Practice active listening in conversations"
+    ]
+  },
+  {
+    title: "Practical Self-Care",
+    description: "Organizing your life to reduce stress and increase well-being.",
+    tips: [
+      "Create a comfortable living environment",
+      "Establish routines for daily tasks",
+      "Take breaks during work or study",
+      "Manage your time effectively",
+      "Declutter your physical space regularly"
+    ]
+  }
+];
+
+// Mood tracking data structure
+interface MoodEntry {
+  date: string;
+  mood: number;
+  activities: string[];
+  notes: string;
+}
+
 export default function MentalHealthSupport() {
   useRequireAuth("patient");
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
@@ -72,10 +215,38 @@ export default function MentalHealthSupport() {
   const [gadResponses, setGadResponses] = useState<number[]>(Array(7).fill(0));
   const [testCompleted, setTestCompleted] = useState(false);
   
+  // States for meditation exercises
+  const [selectedMeditation, setSelectedMeditation] = useState<number | null>(null);
+  const [meditationTimer, setMeditationTimer] = useState<number | null>(null);
+  const [meditationInProgress, setMeditationInProgress] = useState(false);
+  
+  // States for mood tracking
+  const [moodEntries, setMoodEntries] = useState<MoodEntry[]>([]);
+  const [currentMood, setCurrentMood] = useState<number>(5);
+  const [moodActivities, setMoodActivities] = useState<string[]>([]);
+  const [moodNotes, setMoodNotes] = useState<string>("");
+  const [newActivity, setNewActivity] = useState<string>("");
+  
+  // States for relaxation techniques
+  const [selectedRelaxation, setSelectedRelaxation] = useState<number | null>(null);
+  const [relaxationTimer, setRelaxationTimer] = useState<number | null>(null);
+  const [relaxationInProgress, setRelaxationInProgress] = useState(false);
+  
+  // State for self-care tips
+  const [selectedSelfCare, setSelectedSelfCare] = useState<number | null>(null);
+  
   const handleResourceClick = (resource: Resource) => {
     setSelectedResource(resource);
     setShowGAD(false);
     setTestCompleted(false);
+    // Reset all other states
+    setSelectedMeditation(null);
+    setMeditationTimer(null);
+    setMeditationInProgress(false);
+    setSelectedRelaxation(null);
+    setRelaxationTimer(null);
+    setRelaxationInProgress(false);
+    setSelectedSelfCare(null);
   };
   
   const handleGADClick = () => {
@@ -107,6 +278,138 @@ export default function MentalHealthSupport() {
     setTestCompleted(true);
   };
 
+  // Start meditation timer
+  const startMeditation = (index: number) => {
+    const duration = parseInt(meditationExercises[index].duration.split(" ")[0]);
+    setSelectedMeditation(index);
+    setMeditationTimer(duration * 60); // Convert minutes to seconds
+    setMeditationInProgress(true);
+    
+    // Simulate timer counting down
+    toast({
+      title: "Meditation Started",
+      description: `${meditationExercises[index].title} - ${meditationExercises[index].duration}`,
+    });
+    
+    // In a real app, you would use setInterval here
+    setTimeout(() => {
+      if (meditationInProgress) {
+        setMeditationInProgress(false);
+        setMeditationTimer(null);
+        toast({
+          title: "Meditation Complete",
+          description: "Great job completing your meditation session!",
+        });
+      }
+    }, 3000); // Just for demo purposes, in reality would be duration * 1000
+  };
+  
+  // Cancel meditation
+  const cancelMeditation = () => {
+    setMeditationInProgress(false);
+    setMeditationTimer(null);
+    toast({
+      title: "Meditation Cancelled",
+      description: "You can restart your meditation anytime.",
+      variant: "destructive"
+    });
+  };
+  
+  // Add mood entry
+  const addMoodEntry = () => {
+    if (moodActivities.length === 0 && moodNotes.trim() === "") {
+      toast({
+        title: "Add More Details",
+        description: "Please add activities or notes to track your mood better.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const today = new Date().toISOString().split('T')[0];
+    const newEntry: MoodEntry = {
+      date: today,
+      mood: currentMood,
+      activities: [...moodActivities],
+      notes: moodNotes
+    };
+    
+    setMoodEntries([...moodEntries, newEntry]);
+    setCurrentMood(5);
+    setMoodActivities([]);
+    setMoodNotes("");
+    
+    toast({
+      title: "Mood Tracked",
+      description: "Your mood entry has been saved successfully.",
+    });
+  };
+  
+  // Add activity to mood entry
+  const addActivity = () => {
+    if (newActivity.trim() !== "" && !moodActivities.includes(newActivity)) {
+      setMoodActivities([...moodActivities, newActivity]);
+      setNewActivity("");
+    }
+  };
+  
+  // Remove activity from mood entry
+  const removeActivity = (activity: string) => {
+    setMoodActivities(moodActivities.filter(a => a !== activity));
+  };
+  
+  // Start relaxation technique timer
+  const startRelaxation = (index: number) => {
+    const duration = parseInt(relaxationTechniques[index].duration.split(" ")[0]);
+    setSelectedRelaxation(index);
+    setRelaxationTimer(duration * 60); // Convert minutes to seconds
+    setRelaxationInProgress(true);
+    
+    // Simulate timer counting down
+    toast({
+      title: "Relaxation Started",
+      description: `${relaxationTechniques[index].title} - ${relaxationTechniques[index].duration}`,
+    });
+    
+    // In a real app, you would use setInterval here
+    setTimeout(() => {
+      if (relaxationInProgress) {
+        setRelaxationInProgress(false);
+        setRelaxationTimer(null);
+        toast({
+          title: "Relaxation Complete",
+          description: "Great job completing your relaxation exercise!",
+        });
+      }
+    }, 3000); // Just for demo purposes, in reality would be duration * 1000
+  };
+  
+  // Cancel relaxation
+  const cancelRelaxation = () => {
+    setRelaxationInProgress(false);
+    setRelaxationTimer(null);
+    toast({
+      title: "Relaxation Cancelled",
+      description: "You can restart your relaxation exercise anytime.",
+      variant: "destructive"
+    });
+  };
+
+  // Get mood emoji based on score
+  const getMoodEmoji = (score: number) => {
+    if (score <= 2) return "😞";
+    if (score <= 4) return "😟";
+    if (score <= 6) return "😐";
+    if (score <= 8) return "🙂";
+    return "😄";
+  };
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar userType="patient" />
@@ -120,7 +423,9 @@ export default function MentalHealthSupport() {
             {resources.map((resource) => (
               <Card 
                 key={resource.title}
-                className="p-6 hover:shadow-md transition-shadow cursor-pointer"
+                className={`p-6 hover:shadow-md transition-shadow cursor-pointer ${
+                  selectedResource?.title === resource.title ? "border-primary border-2" : ""
+                }`}
                 onClick={() => handleResourceClick(resource)}
               >
                 <div className="mb-4">
@@ -134,7 +439,9 @@ export default function MentalHealthSupport() {
             ))}
             
             <Card 
-              className="p-6 hover:shadow-md transition-shadow cursor-pointer border-dashed border-2"
+              className={`p-6 hover:shadow-md transition-shadow cursor-pointer border-dashed border-2 ${
+                showGAD ? "border-primary border-2 border-solid" : ""
+              }`}
               onClick={handleGADClick}
             >
               <div className="mb-4">
@@ -147,21 +454,332 @@ export default function MentalHealthSupport() {
             </Card>
           </div>
 
-          {selectedResource && (
+          {/* Meditation Exercises Content */}
+          {selectedResource?.title === "Meditation Exercises" && (
             <Card className="p-6">
               <h2 className="text-2xl font-semibold mb-4 flex items-center">
-                <div className="mr-3 text-primary">{selectedResource.icon}</div>
-                {selectedResource.title}
+                <div className="mr-3 text-primary"><Brain className="w-6 h-6" /></div>
+                Meditation Exercises
               </h2>
-              <p className="mb-6 text-gray-600">{selectedResource.description}</p>
+              <p className="mb-6 text-gray-600">
+                Guided meditation sessions to help reduce stress and anxiety. Select an exercise to begin.
+              </p>
               
-              <div className="space-y-4">
-                <p>Content for {selectedResource.title} will be available soon.</p>
-                <Button onClick={() => window.open(selectedResource.link, '_blank')}>Start Now</Button>
+              {selectedMeditation === null ? (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {meditationExercises.map((exercise, index) => (
+                    <Card key={index} className="p-4 hover:shadow-md cursor-pointer" onClick={() => setSelectedMeditation(index)}>
+                      <h3 className="font-semibold mb-2">{exercise.title}</h3>
+                      <div className="text-sm mb-2 text-gray-500">{exercise.duration}</div>
+                      <p className="text-sm text-gray-600 mb-4">{exercise.description}</p>
+                      <Button onClick={(e) => { e.stopPropagation(); startMeditation(index); }}>
+                        Start Exercise
+                      </Button>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <Button 
+                    variant="outline" 
+                    className="mb-4"
+                    onClick={() => setSelectedMeditation(null)}
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" /> Back to All Exercises
+                  </Button>
+                  
+                  <div className="bg-muted p-6 rounded-lg">
+                    <h3 className="text-xl font-semibold mb-2">
+                      {meditationExercises[selectedMeditation].title}
+                    </h3>
+                    <div className="text-sm mb-2 text-gray-500">
+                      {meditationExercises[selectedMeditation].duration}
+                    </div>
+                    <p className="mb-6">{meditationExercises[selectedMeditation].description}</p>
+                    
+                    <h4 className="font-medium mb-3">Steps:</h4>
+                    <ol className="list-decimal pl-5 space-y-2 mb-6">
+                      {meditationExercises[selectedMeditation].steps.map((step, index) => (
+                        <li key={index}>{step}</li>
+                      ))}
+                    </ol>
+                    
+                    {meditationInProgress ? (
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          <p>Meditation in progress...</p>
+                          <Button variant="destructive" onClick={cancelMeditation}>Stop</Button>
+                        </div>
+                        <Progress value={50} className="h-2" />
+                      </div>
+                    ) : (
+                      <Button onClick={() => startMeditation(selectedMeditation)}>
+                        Start Meditation
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </Card>
+          )}
+          
+          {/* Mood Tracking Content */}
+          {selectedResource?.title === "Mood Tracking" && (
+            <Card className="p-6">
+              <h2 className="text-2xl font-semibold mb-4 flex items-center">
+                <div className="mr-3 text-primary"><Heart className="w-6 h-6" /></div>
+                Mood Tracking
+              </h2>
+              <p className="mb-6 text-gray-600">
+                Track your daily mood and identify patterns that affect your mental well-being.
+              </p>
+              
+              <div className="grid md:grid-cols-2 gap-8">
+                <div className="space-y-6">
+                  <h3 className="text-lg font-medium">How are you feeling today?</h3>
+                  
+                  <div className="text-center mb-2">
+                    <span className="text-4xl">{getMoodEmoji(currentMood)}</span>
+                    <p className="mt-2">
+                      {currentMood <= 2 ? "Very Low" : 
+                       currentMood <= 4 ? "Low" : 
+                       currentMood <= 6 ? "Neutral" : 
+                       currentMood <= 8 ? "Good" : "Excellent"}
+                    </p>
+                  </div>
+                  
+                  <div className="px-4">
+                    <Slider 
+                      value={[currentMood]} 
+                      min={1} 
+                      max={10} 
+                      step={1}
+                      onValueChange={(value) => setCurrentMood(value[0])}
+                    />
+                    <div className="flex justify-between text-sm text-gray-500 mt-1">
+                      <span>1</span>
+                      <span>5</span>
+                      <span>10</span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <Label htmlFor="activities">What activities affected your mood?</Label>
+                    <div className="flex gap-2">
+                      <Input 
+                        id="activities" 
+                        value={newActivity}
+                        onChange={(e) => setNewActivity(e.target.value)}
+                        placeholder="e.g., Exercise, Reading, Work"
+                      />
+                      <Button onClick={addActivity} type="button">Add</Button>
+                    </div>
+                    
+                    {moodActivities.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {moodActivities.map((activity, index) => (
+                          <div key={index} className="bg-muted px-3 py-1 rounded-full flex items-center text-sm">
+                            {activity}
+                            <button 
+                              onClick={() => removeActivity(activity)}
+                              className="ml-2 text-gray-500 hover:text-gray-700"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <Label htmlFor="notes">Notes</Label>
+                    <Textarea 
+                      id="notes" 
+                      value={moodNotes}
+                      onChange={(e) => setMoodNotes(e.target.value)}
+                      placeholder="Add any additional notes about your mood or day..."
+                      rows={4}
+                    />
+                  </div>
+                  
+                  <Button onClick={addMoodEntry} className="w-full">Save Mood Entry</Button>
+                </div>
+                
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Mood History</h3>
+                  
+                  {moodEntries.length === 0 ? (
+                    <div className="text-center py-8 border border-dashed rounded-lg">
+                      <Calendar className="w-12 h-12 mx-auto text-gray-400 mb-2" />
+                      <p className="text-gray-500">No mood entries yet. Start tracking your mood!</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                      {moodEntries.map((entry, index) => (
+                        <Card key={index} className="p-4">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="font-medium">{formatDate(entry.date)}</span>
+                            <span className="text-2xl">{getMoodEmoji(entry.mood)}</span>
+                          </div>
+                          
+                          {entry.activities.length > 0 && (
+                            <div className="mb-2">
+                              <p className="text-sm text-gray-500 mb-1">Activities:</p>
+                              <div className="flex flex-wrap gap-1">
+                                {entry.activities.map((activity, i) => (
+                                  <span key={i} className="bg-muted px-2 py-0.5 rounded-full text-xs">
+                                    {activity}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {entry.notes && (
+                            <div>
+                              <p className="text-sm text-gray-500 mb-1">Notes:</p>
+                              <p className="text-sm">{entry.notes}</p>
+                            </div>
+                          )}
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </Card>
           )}
           
+          {/* Relaxation Techniques Content */}
+          {selectedResource?.title === "Relaxation Techniques" && (
+            <Card className="p-6">
+              <h2 className="text-2xl font-semibold mb-4 flex items-center">
+                <div className="mr-3 text-primary"><Moon className="w-6 h-6" /></div>
+                Relaxation Techniques
+              </h2>
+              <p className="mb-6 text-gray-600">
+                Simple techniques for stress relief and relaxation. Choose a technique to practice.
+              </p>
+              
+              {selectedRelaxation === null ? (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {relaxationTechniques.map((technique, index) => (
+                    <Card key={index} className="p-4 hover:shadow-md cursor-pointer" onClick={() => setSelectedRelaxation(index)}>
+                      <h3 className="font-semibold mb-2">{technique.title}</h3>
+                      <div className="text-sm mb-2 text-gray-500">{technique.duration}</div>
+                      <p className="text-sm text-gray-600 mb-4">{technique.description}</p>
+                      <Button onClick={(e) => { e.stopPropagation(); startRelaxation(index); }}>
+                        Start Technique
+                      </Button>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <Button 
+                    variant="outline" 
+                    className="mb-4"
+                    onClick={() => setSelectedRelaxation(null)}
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" /> Back to All Techniques
+                  </Button>
+                  
+                  <div className="bg-muted p-6 rounded-lg">
+                    <h3 className="text-xl font-semibold mb-2">
+                      {relaxationTechniques[selectedRelaxation].title}
+                    </h3>
+                    <div className="text-sm mb-2 text-gray-500">
+                      {relaxationTechniques[selectedRelaxation].duration}
+                    </div>
+                    <p className="mb-6">{relaxationTechniques[selectedRelaxation].description}</p>
+                    
+                    <h4 className="font-medium mb-3">Steps:</h4>
+                    <ol className="list-decimal pl-5 space-y-2 mb-6">
+                      {relaxationTechniques[selectedRelaxation].steps.map((step, index) => (
+                        <li key={index}>{step}</li>
+                      ))}
+                    </ol>
+                    
+                    {relaxationInProgress ? (
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          <p>Relaxation in progress...</p>
+                          <Button variant="destructive" onClick={cancelRelaxation}>Stop</Button>
+                        </div>
+                        <Progress value={50} className="h-2" />
+                      </div>
+                    ) : (
+                      <Button onClick={() => startRelaxation(selectedRelaxation)}>
+                        Start Relaxation
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </Card>
+          )}
+          
+          {/* Self-Care Tips Content */}
+          {selectedResource?.title === "Self-Care Tips" && (
+            <Card className="p-6">
+              <h2 className="text-2xl font-semibold mb-4 flex items-center">
+                <div className="mr-3 text-primary"><Smile className="w-6 h-6" /></div>
+                Self-Care Tips
+              </h2>
+              <p className="mb-6 text-gray-600">
+                Daily practices to maintain mental well-being and improve your quality of life.
+              </p>
+              
+              <div className="grid md:grid-cols-2 gap-6 mb-8">
+                {selfCareTips.map((category, index) => (
+                  <Card 
+                    key={index}
+                    className={`p-4 hover:shadow-md cursor-pointer ${
+                      selectedSelfCare === index ? "border-primary border-2" : ""
+                    }`}
+                    onClick={() => setSelectedSelfCare(index)}
+                  >
+                    <h3 className="font-semibold mb-2">{category.title}</h3>
+                    <p className="text-sm text-gray-600">{category.description}</p>
+                  </Card>
+                ))}
+              </div>
+              
+              {selectedSelfCare !== null && (
+                <div className="bg-muted p-6 rounded-lg">
+                  <h3 className="text-xl font-semibold mb-4">{selfCareTips[selectedSelfCare].title}</h3>
+                  <p className="mb-6">{selfCareTips[selectedSelfCare].description}</p>
+                  
+                  <h4 className="font-medium mb-3">Recommended Practices:</h4>
+                  <ul className="space-y-4">
+                    {selfCareTips[selectedSelfCare].tips.map((tip, index) => (
+                      <li key={index} className="flex items-start">
+                        <div className="mr-3 mt-1 bg-primary/10 p-1 rounded-full text-primary">
+                          <Plus className="w-4 h-4" />
+                        </div>
+                        <span>{tip}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  
+                  <div className="mt-6">
+                    <Button 
+                      onClick={() => {
+                        toast({
+                          title: "Tip Added to Favorites",
+                          description: "You can access this tip anytime in your saved items.",
+                        });
+                      }}
+                    >
+                      Add to Favorites
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </Card>
+          )}
+
           {showGAD && (
             <Card className="p-6">
               <h2 className="text-2xl font-semibold mb-4 flex items-center">
