@@ -1,4 +1,5 @@
-const BACKEND_URL = "https://https://chikitsak-backend.onrender.com/";
+const BACKEND_URL = "https://chikitsak-backend.onrender.com/";
+
 import { useState } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -75,7 +76,7 @@ export default function SymptomChecker() {
     setSymptoms(symptoms.filter(s => s.id !== id));
   };
 
-  const checkSymptoms = () => {
+  const checkSymptoms = async () => {
     if (symptoms.length === 0) {
       toast({
         title: "No Symptoms",
@@ -123,117 +124,43 @@ export default function SymptomChecker() {
       return;
     }
 
-    // Check if symptoms match common conditions
-    const symptomsLower = symptoms.map(s => s.name.toLowerCase());
-    const matchedConditions = [];
-    
-    for (const [condition, patterns] of Object.entries(conditionPatterns)) {
-      const matchCount = patterns.filter(pattern => 
-        symptomsLower.some(s => s.includes(pattern.toLowerCase()))
-      ).length;
-      
-      const matchPercentage = patterns.length > 0 ? matchCount / patterns.length : 0;
-      
-      if (matchPercentage >= 0.5) {
-        matchedConditions.push({
-          name: condition,
-          matchPercentage: matchPercentage
+    // Prepare the symptoms data for sending to backend
+    const symptomsNames = symptoms.map(symptom => symptom.name);
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/symptoms`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ symptoms: symptomsNames })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        // Assuming the backend returns disease prediction data
+        setResult({
+          title: data.title,
+          description: data.description,
+          urgency: data.urgency
         });
-      }
-    }
 
-    // Sort conditions by match percentage
-    matchedConditions.sort((a, b) => b.matchPercentage - a.matchPercentage);
-
-    if (matchedConditions.length > 0) {
-      const topCondition = matchedConditions[0];
-      let conditionName = "";
-      let recommendation = "";
-      let urgency: "low" | "medium" | "high" = "low";
-      
-      // Format condition name
-      switch(topCondition.name) {
-        case "commonCold":
-          conditionName = "Common Cold";
-          recommendation = "Rest, stay hydrated, and consider over-the-counter cold medication.";
-          urgency = "low";
-          break;
-        case "flu":
-          conditionName = "Flu";
-          recommendation = "Rest, stay hydrated, and take fever reducers if needed. Consult a doctor if symptoms worsen.";
-          urgency = "medium";
-          break;
-        case "covid":
-          conditionName = "COVID-19";
-          recommendation = "Consider getting tested for COVID-19. Self-isolate and consult a healthcare provider.";
-          urgency = "medium";
-          break;
-        case "allergies":
-          conditionName = "Allergies";
-          recommendation = "Consider antihistamines and avoiding allergens.";
-          urgency = "low";
-          break;
-        case "foodPoisoning":
-          conditionName = "Food Poisoning";
-          recommendation = "Stay hydrated and rest. Seek medical attention if symptoms persist beyond 48 hours.";
-          urgency = "medium";
-          break;
-        case "migraine":
-          conditionName = "Migraine";
-          recommendation = "Rest in a dark, quiet room. Consider over-the-counter pain relievers.";
-          urgency = "low";
-          break;
-        case "anxiety":
-          conditionName = "Anxiety";
-          recommendation = "Try deep breathing exercises and relaxation techniques. Consider speaking with a mental health professional.";
-          urgency = "low";
-          break;
-        case "dehydration":
-          conditionName = "Dehydration";
-          recommendation = "Drink fluids with electrolytes. Seek medical attention if severe.";
-          urgency = "medium";
-          break;
-        default:
-          conditionName = topCondition.name;
-          recommendation = "Consider consulting with a healthcare provider.";
-          urgency = "medium";
+        toast({
+          title: data.title,
+          description: data.description,
+          variant: data.urgency === "high" ? "destructive" : "default"
+        });
+      } else {
+        throw new Error("Failed to fetch prediction data");
       }
-      
-      setResult({
-        title: `Possible ${conditionName}`,
-        description: `Your symptoms match patterns of ${conditionName}. ${recommendation}`,
-        urgency
-      });
-      
+    } catch (error) {
       toast({
-        title: `Possible ${conditionName}`,
-        description: recommendation,
-        variant: urgency === "high" ? "destructive" : "default"
-      });
-      return;
-    }
-
-    // If no specific condition matched
-    const hasModerateSeverity = symptoms.some(s => s.severity === "moderate");
-    
-    if (hasModerateSeverity) {
-      setResult({
-        title: "Multiple Symptoms Detected",
-        description: "Your combination of symptoms may require medical attention. Consider consulting with a healthcare provider.",
-        urgency: "medium"
-      });
-    } else {
-      setResult({
-        title: "Mild Symptoms Detected",
-        description: "Your symptoms appear to be mild. Monitor them and rest. If they persist or worsen, consider consulting with a healthcare provider.",
-        urgency: "low"
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
       });
     }
-
-    toast({
-      title: "Analysis Complete",
-      description: "We've analyzed your symptoms. See the results below.",
-    });
   };
 
   const getUrgencyClass = (urgency: "low" | "medium" | "high") => {
@@ -332,35 +259,20 @@ export default function SymptomChecker() {
                 </div>
               )}
 
-              <Button
-                onClick={checkSymptoms}
-                className="w-full"
-                disabled={symptoms.length === 0}
-              >
+              <Button onClick={checkSymptoms} className="w-full">
                 Check Symptoms
               </Button>
             </Card>
-
-            {result && (
-              <Card className={`p-6 md:col-span-2 border-2 ${getUrgencyClass(result.urgency)}`}>
-                <h2 className="text-xl font-semibold mb-2">{result.title}</h2>
-                <p>{result.description}</p>
-                
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <p className="text-sm font-medium">
-                    {result.urgency === "high" ? 
-                      "⚠️ Urgent: Please seek immediate medical attention" :
-                      result.urgency === "medium" ?
-                      "⚠️ Consider consulting with a healthcare provider soon" :
-                      "👍 Monitor your symptoms and rest"}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Note: This is not a medical diagnosis. Always consult with a healthcare professional for proper medical advice.
-                  </p>
-                </div>
-              </Card>
-            )}
           </div>
+
+          {result && (
+            <div
+              className={`mt-8 p-6 rounded-lg border ${getUrgencyClass(result.urgency)}`}
+            >
+              <h2 className="text-xl font-semibold">{result.title}</h2>
+              <p className="text-sm text-gray-600">{result.description}</p>
+            </div>
+          )}
         </main>
       </div>
     </div>
