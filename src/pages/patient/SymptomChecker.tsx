@@ -128,7 +128,7 @@ export default function SymptomChecker() {
     const symptomsNames = symptoms.map(symptom => symptom.name);
 
     try {
-      const response = await fetch(`${BACKEND_URL}/api/symptoms`, {
+      const response = await fetch(`https://chikitsak-backend.onrender.com/api/symptoms`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
