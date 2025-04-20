@@ -128,7 +128,7 @@ export default function SymptomChecker() {
     const symptomsNames = symptoms.map(symptom => symptom.name);
 
     try {
-      const response = await fetch(`https://chikitsak-backend.onrender.com/api/symptoms`, {
+      const response = await fetch(`${BACKEND_URL}api/symptoms`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -139,18 +139,42 @@ export default function SymptomChecker() {
       if (response.ok) {
         const data = await response.json();
 
-        // Assuming the backend returns disease prediction data
-        setResult({
-          title: data.title,
-          description: data.description,
-          urgency: data.urgency
-        });
+        // Get top disease prediction
+        const topMatch = data.length > 0 ? data[0] : null;
 
-        toast({
-          title: data.title,
-          description: data.description,
-          variant: data.urgency === "high" ? "destructive" : "default"
-        });
+        if (topMatch) {
+          const topDisease = topMatch.disease;
+          const matchScore = topMatch.matches;
+
+          let urgency: "low" | "medium" | "high" = "low";
+
+          if (matchScore >= 15) urgency = "high";
+          else if (matchScore >= 8) urgency = "medium";
+
+          setResult({
+            title: `Possible Condition: ${topDisease}`,
+            description: `Based on your symptoms, ${topDisease} is a likely match with ${matchScore} symptom overlaps.`,
+            urgency
+          });
+
+          toast({
+            title: `Likely Condition: ${topDisease}`,
+            description: `This condition had the highest number of symptom matches (${matchScore}).`,
+            variant: urgency === "high" ? "destructive" : "default"
+          });
+        } else {
+          setResult({
+            title: "No Clear Match Found",
+            description: "We couldn't identify a specific condition based on your symptoms.",
+            urgency: "low"
+          });
+
+          toast({
+            title: "No Match Found",
+            description: "Try entering more detailed symptoms.",
+            variant: "default"
+          });
+        }
       } else {
         throw new Error("Failed to fetch prediction data");
       }
@@ -278,3 +302,4 @@ export default function SymptomChecker() {
     </div>
   );
 }
+
