@@ -1,3 +1,4 @@
+const BACKEND_URL = "https://https://chikitsak-backend.onrender.com/";
 import { useState } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Sidebar } from "@/components/layout/Sidebar";
