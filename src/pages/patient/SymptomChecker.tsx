@@ -1,15 +1,20 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 const BACKEND_URL = "https://chikitsak-backend.onrender.com/";
 
-type Symptom = {
-  name: string;
-};
+const knownSymptoms = [
+  "fever", "headache", "cough", "cold", "sore throat", "nausea", "vomiting",
+  "diarrhea", "fatigue", "chest pain", "shortness of breath", "dizziness",
+  "rash", "joint pain", "muscle pain", "sneezing", "runny nose", "congestion",
+  "sensitivity to light", "seizure", "unconsciousness", "abdominal pain"
+];
+
+type Symptom = { name: string };
 
 const SymptomChecker: React.FC = () => {
   const [symptomInput, setSymptomInput] = useState("");
@@ -18,46 +23,45 @@ const SymptomChecker: React.FC = () => {
   const [duration, setDuration] = useState("");
   const [result, setResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [listening, setListening] = useState(false);
-  const recognitionRef = useRef<any>(null);
-
-  useEffect(() => {
-    // Setup speech recognition
-    if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
-      const SpeechRecognition =
-        (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
-      const recognition = new SpeechRecognition();
-      recognition.lang = "en-US";
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
-
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setSymptomInput(transcript);
-        setListening(false);
-      };
-
-      recognition.onerror = (event: any) => {
-        console.error("Speech recognition error", event.error);
-        setListening(false);
-      };
-
-      recognitionRef.current = recognition;
-    }
-  }, []);
-
-  const startListening = () => {
-    if (recognitionRef.current) {
-      setListening(true);
-      recognitionRef.current.start();
-    }
-  };
 
   const addSymptom = () => {
     if (symptomInput.trim()) {
       setSymptoms([...symptoms, { name: symptomInput.trim() }]);
       setSymptomInput("");
     }
+  };
+
+  const extractSymptoms = (text: string) => {
+    const detected: string[] = [];
+    const lowerText = text.toLowerCase();
+    knownSymptoms.forEach((symptom) => {
+      if (lowerText.includes(symptom) && !symptoms.find(s => s.name === symptom)) {
+        detected.push(symptom);
+      }
+    });
+
+    if (detected.length > 0) {
+      setSymptoms([...symptoms, ...detected.map((s) => ({ name: s }))]);
+    }
+  };
+
+  const handleVoiceInput = () => {
+    const recognition = new (window as any).webkitSpeechRecognition() || new (window as any).SpeechRecognition();
+    recognition.lang = "en-US";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.start();
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setSymptomInput(transcript);
+      extractSymptoms(transcript);
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error("Speech recognition error:", event.error);
+    };
   };
 
   const handleCheckSymptoms = async () => {
@@ -102,17 +106,15 @@ const SymptomChecker: React.FC = () => {
         <Input
           value={symptomInput}
           onChange={(e) => setSymptomInput(e.target.value)}
-          placeholder="Enter symptom (e.g. headache)"
+          placeholder="Enter or speak a symptom"
         />
         <Button onClick={addSymptom}>Add</Button>
-        <Button variant="outline" onClick={startListening}>
-          {listening ? "🎤 Listening..." : "🎙️ Speak"}
-        </Button>
+        <Button variant="outline" onClick={handleVoiceInput}>🎤 Speak</Button>
       </div>
 
       {symptoms.length > 0 && (
         <div className="space-y-2">
-          <p className="text-sm font-medium">Your symptoms:</p>
+          <p className="text-sm font-medium">Detected symptoms:</p>
           <ul className="flex flex-wrap gap-2">
             {symptoms.map((s, idx) => (
               <li key={idx} className="bg-gray-100 text-sm px-3 py-1 rounded-full border">
