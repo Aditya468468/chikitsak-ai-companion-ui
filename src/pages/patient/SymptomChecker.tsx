@@ -48,10 +48,10 @@ const SymptomChecker: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`${BACKEND_URL}api/symptoms`, {
+      const response = await fetch(`${BACKEND_URL}api/symptoms/nlp`, {  // NLP endpoint
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ symptoms: symptomNames }),
+        body: JSON.stringify({ symptoms: symptomNames, severity, duration }),
       });
 
       const data = await response.json();
