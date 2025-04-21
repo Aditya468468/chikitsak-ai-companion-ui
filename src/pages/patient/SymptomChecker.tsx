@@ -1,13 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
-const BACKEND_URL = "https://chikitsak-backend.onrender.com/"; // Adjust this URL if needed
+const BACKEND_URL = "https://chikitsak-backend.onrender.com/";
 
-type Symptom = { name: string };
+type Symptom = {
+  name: string;
+};
 
 const SymptomChecker: React.FC = () => {
   const [symptomInput, setSymptomInput] = useState("");
@@ -16,6 +18,40 @@ const SymptomChecker: React.FC = () => {
   const [duration, setDuration] = useState("");
   const [result, setResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    // Setup speech recognition
+    if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
+      const SpeechRecognition =
+        (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.lang = "en-US";
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setSymptomInput(transcript);
+        setListening(false);
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error("Speech recognition error", event.error);
+        setListening(false);
+      };
+
+      recognitionRef.current = recognition;
+    }
+  }, []);
+
+  const startListening = () => {
+    if (recognitionRef.current) {
+      setListening(true);
+      recognitionRef.current.start();
+    }
+  };
 
   const addSymptom = () => {
     if (symptomInput.trim()) {
@@ -30,7 +66,6 @@ const SymptomChecker: React.FC = () => {
     setResult(null);
 
     try {
-      // Sending data to backend for NLP processing
       const response = await fetch(`${BACKEND_URL}api/symptoms/nlp`, {
         method: "POST",
         headers: {
@@ -45,7 +80,6 @@ const SymptomChecker: React.FC = () => {
 
       const data = await response.json();
 
-      // Handling the backend response
       if (data.message) {
         setResult(`🤖 ${data.message}`);
       } else {
@@ -71,6 +105,9 @@ const SymptomChecker: React.FC = () => {
           placeholder="Enter symptom (e.g. headache)"
         />
         <Button onClick={addSymptom}>Add</Button>
+        <Button variant="outline" onClick={startListening}>
+          {listening ? "🎤 Listening..." : "🎙️ Speak"}
+        </Button>
       </div>
 
       {symptoms.length > 0 && (
