@@ -1,120 +1,48 @@
+"use client";
+
+import React, { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+
 const BACKEND_URL = "https://chikitsak-backend.onrender.com/";
 
-import { useState } from "react";
-import { Navbar } from "@/components/layout/Navbar";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { useRequireAuth } from "@/hooks/useRequireAuth";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { toast } from "@/hooks/use-toast";
-
-interface Symptom {
-  id: number;
+type Symptom = {
   name: string;
-  severity: "mild" | "moderate" | "severe";
-  duration: string;
-}
+};
 
-const emergencySymptoms = [
-  "chest pain", 
-  "difficulty breathing", 
-  "severe bleeding", 
-  "confusion", 
-  "loss of consciousness",
-  "severe headache",
-  "inability to move",
-  "numbness on one side",
-  "slurred speech",
-  "seizure"
-];
-
-export default function SymptomChecker() {
-  useRequireAuth("patient");
-
+const SymptomChecker: React.FC = () => {
+  const [symptomInput, setSymptomInput] = useState("");
   const [symptoms, setSymptoms] = useState<Symptom[]>([]);
-  const [currentSymptom, setCurrentSymptom] = useState("");
-  const [severity, setSeverity] = useState<"mild" | "moderate" | "severe">("mild");
+  const [severity, setSeverity] = useState("mild");
   const [duration, setDuration] = useState("");
-  const [result, setResult] = useState<{
-    title: string;
-    description: string;
-    urgency: "low" | "medium" | "high";
-  } | null>(null);
+  const [result, setResult] = useState<string | null>(null);
 
   const addSymptom = () => {
-    if (!currentSymptom) {
-      toast({
-        title: "Missing Information",
-        description: "Please enter a symptom",
-        variant: "destructive",
-      });
-      return;
+    if (symptomInput.trim()) {
+      setSymptoms([...symptoms, { name: symptomInput.trim() }]);
+      setSymptomInput("");
     }
-
-    const newSymptom: Symptom = {
-      id: Date.now(),
-      name: currentSymptom,
-      severity,
-      duration,
-    };
-
-    setSymptoms([...symptoms, newSymptom]);
-    setCurrentSymptom("");
-    setDuration("");
   };
 
-  const removeSymptom = (id: number) => {
-    setSymptoms(symptoms.filter((s) => s.id !== id));
-  };
+  const handleCheckSymptoms = async () => {
+    const symptomNames = symptoms.map((s) => s.name.toLowerCase());
 
-  const checkSymptoms = async () => {
-    if (symptoms.length === 0) {
-      toast({
-        title: "No Symptoms",
-        description: "Please add at least one symptom",
-        variant: "destructive",
-      });
+    // Emergency conditions
+    const emergencySymptoms = ["chest pain", "shortness of breath", "seizure", "unconsciousness"];
+    const isEmergency = symptomNames.some((symptom) =>
+      emergencySymptoms.includes(symptom)
+    );
+
+    if (isEmergency) {
+      setResult("⚠️ Emergency detected! Seek immediate medical attention.");
       return;
     }
 
-    for (const symptom of symptoms) {
-      if (emergencySymptoms.some((es) => symptom.name.toLowerCase().includes(es.toLowerCase()))) {
-        setResult({
-          title: "Seek Immediate Medical Attention",
-          description: `Your symptom "${symptom.name}" may indicate a serious medical condition.`,
-          urgency: "high",
-        });
-        toast({
-          title: "Emergency Warning",
-          description: "You may have a serious condition. Please seek immediate medical attention.",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-
-    const severeSymptomsLongDuration = symptoms.filter((s) => {
-      const match = s.duration.match(/(\d+)\s*(day|days)/i);
-      const days = match ? parseInt(match[1]) : 0;
-      return s.severity === "severe" && days >= 3;
-    });
-
-    if (severeSymptomsLongDuration.length > 0) {
-      setResult({
-        title: "Medical Attention Recommended",
-        description: "Severe symptoms lasting for several days detected. Please consult a doctor.",
-        urgency: "high",
-      });
-      toast({
-        title: "Warning",
-        description: "Severe symptoms detected. Medical consultation recommended.",
-        variant: "destructive",
-      });
+    if (severity === "severe" && parseInt(duration) >= 2) {
+      setResult("⚠️ Severe symptoms for multiple days. Medical attention recommended.");
       return;
     }
-
-    const symptomNames = symptoms.map((s) => s.name);
 
     try {
       const response = await fetch(`${BACKEND_URL}api/symptoms`, {
@@ -125,128 +53,80 @@ export default function SymptomChecker() {
         body: JSON.stringify({ symptoms: symptomNames }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        const topMatch = data.length > 0 ? data[0] : null;
+      const data = await response.json();
 
-        if (topMatch) {
-          const { disease, matches } = topMatch;
-          let urgency: "low" | "medium" | "high" = "low";
-
-          if (matches >= 15) urgency = "high";
-          else if (matches >= 8) urgency = "medium";
-
-          setResult({
-            title: `Possible Condition: ${disease}`,
-            description: `Based on your symptoms, ${disease} is a likely match with ${matches} symptom overlaps.`,
-            urgency,
-          });
-
-          toast({
-            title: `Likely Condition: ${disease}`,
-            description: `This condition had the highest number of symptom matches (${matches}).`,
-            variant: urgency === "high" ? "destructive" : "default",
-          });
-        } else {
-          setResult({
-            title: "No Clear Match Found",
-            description: "We couldn't identify a specific condition based on your symptoms.",
-            urgency: "low",
-          });
-
-          toast({
-            title: "No Match Found",
-            description: "Try entering more detailed symptoms.",
-            variant: "default",
-          });
-        }
+      if (data.message) {
+        setResult(data.message);
       } else {
-        throw new Error("Backend error while fetching diagnosis.");
+        const diseases = data.map((item: any) => `${item.disease} (score: ${item.matches})`);
+        setResult(`Top possible diseases:\n${diseases.join("\n")}`);
       }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const getUrgencyClass = (urgency: "low" | "medium" | "high") => {
-    switch (urgency) {
-      case "low": return "bg-green-50 border-green-200 text-green-800";
-      case "medium": return "bg-yellow-50 border-yellow-200 text-yellow-800";
-      case "high": return "bg-red-50 border-red-200 text-red-800";
-      default: return "";
+    } catch (error) {
+      console.error("Error checking symptoms:", error);
+      setResult("Something went wrong while checking symptoms.");
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar userType="patient" />
-      <div className="flex flex-1">
-        <Sidebar userType="patient" />
-        <main className="flex-1 p-8">
-          <h1 className="text-3xl font-bold mb-2">Symptom Checker</h1>
-          <p className="text-gray-600 mb-8">Track and assess your symptoms</p>
+    <div className="max-w-2xl mx-auto p-6 space-y-4">
+      <h1 className="text-2xl font-bold mb-2">Symptom Checker</h1>
 
-          <div className="grid md:grid-cols-2 gap-8">
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Add Symptoms</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Symptom</label>
-                  <Input value={currentSymptom} onChange={(e) => setCurrentSymptom(e.target.value)} placeholder="Enter symptom" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Severity</label>
-                  <div className="flex gap-2">
-                    {["mild", "moderate", "severe"].map((s) => (
-                      <Button key={s} variant={severity === s ? "default" : "outline"} onClick={() => setSeverity(s as any)}>
-                        {s.charAt(0).toUpperCase() + s.slice(1)}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Duration</label>
-                  <Input value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="e.g., 2 days" />
-                </div>
-                <Button onClick={addSymptom} className="w-full">Add Symptom</Button>
-              </div>
-            </Card>
-
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Your Symptoms</h2>
-              {symptoms.length === 0 ? (
-                <p className="text-gray-500">No symptoms added yet</p>
-              ) : (
-                <div className="space-y-4 mb-6">
-                  {symptoms.map((symptom) => (
-                    <div key={symptom.id} className="p-4 rounded-lg border flex justify-between items-center">
-                      <div>
-                        <h3 className="font-medium">{symptom.name}</h3>
-                        <p className="text-sm text-gray-600">
-                          Severity: {symptom.severity}, Duration: {symptom.duration}
-                        </p>
-                      </div>
-                      <Button variant="outline" size="sm" onClick={() => removeSymptom(symptom.id)}>Remove</Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <Button onClick={checkSymptoms} className="w-full">Check Symptoms</Button>
-            </Card>
-          </div>
-
-          {result && (
-            <div className={`mt-8 p-6 rounded-lg border ${getUrgencyClass(result.urgency)}`}>
-              <h2 className="text-xl font-semibold">{result.title}</h2>
-              <p className="text-sm text-gray-600">{result.description}</p>
-            </div>
-          )}
-        </main>
+      <div className="flex gap-2">
+        <Input
+          value={symptomInput}
+          onChange={(e) => setSymptomInput(e.target.value)}
+          placeholder="Enter a symptom"
+        />
+        <Button onClick={addSymptom}>Add</Button>
       </div>
+
+      <div className="flex gap-4">
+        <div className="w-1/2">
+          <label className="block text-sm font-medium">Severity</label>
+          <select
+            value={severity}
+            onChange={(e) => setSeverity(e.target.value)}
+            className="w-full border border-gray-300 rounded-md p-2"
+          >
+            <option value="mild">Mild</option>
+            <option value="moderate">Moderate</option>
+            <option value="severe">Severe</option>
+          </select>
+        </div>
+
+        <div className="w-1/2">
+          <label className="block text-sm font-medium">Duration (in days)</label>
+          <Input
+            type="number"
+            value={duration}
+            onChange={(e) => setDuration(e.target.value)}
+            placeholder="e.g., 2"
+          />
+        </div>
+      </div>
+
+      <Button className="mt-4" onClick={handleCheckSymptoms}>
+        Check Symptoms
+      </Button>
+
+      {result && (
+        <Card className="mt-4">
+          <CardContent className="p-4 whitespace-pre-wrap">{result}</CardContent>
+        </Card>
+      )}
+
+      {symptoms.length > 0 && (
+        <div className="mt-4">
+          <h2 className="text-lg font-semibold mb-1">Selected Symptoms:</h2>
+          <ul className="list-disc list-inside">
+            {symptoms.map((s, idx) => (
+              <li key={idx}>{s.name}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
-}
+};
+
+export default SymptomChecker;
