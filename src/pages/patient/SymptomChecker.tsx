@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,13 +8,28 @@ import { Card, CardContent } from "@/components/ui/card";
 const BACKEND_URL = "https://chikitsak-backend.onrender.com/";
 
 const knownSymptoms = [
-  "fever", "headache", "cough", "cold", "sore throat", "nausea", "vomiting",
-  "diarrhea", "fatigue", "chest pain", "shortness of breath", "dizziness",
-  "rash", "joint pain", "muscle pain", "sneezing", "runny nose", "congestion",
-  "sensitivity to light", "seizure", "unconsciousness", "abdominal pain"
+  "fever",
+  "cough",
+  "headache",
+  "sore throat",
+  "runny nose",
+  "chest pain",
+  "shortness of breath",
+  "seizure",
+  "unconsciousness",
+  "fatigue",
+  "nausea",
+  "vomiting",
+  "diarrhea",
+  "dizziness",
+  "rash",
+  "muscle pain",
+  "joint pain",
 ];
 
-type Symptom = { name: string };
+type Symptom = {
+  name: string;
+};
 
 const SymptomChecker: React.FC = () => {
   const [symptomInput, setSymptomInput] = useState("");
@@ -23,6 +38,8 @@ const SymptomChecker: React.FC = () => {
   const [duration, setDuration] = useState("");
   const [result, setResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const recognitionRef = useRef<any>(null);
 
   const addSymptom = () => {
     if (symptomInput.trim()) {
@@ -34,38 +51,71 @@ const SymptomChecker: React.FC = () => {
   const extractSymptoms = (text: string) => {
     const detected: string[] = [];
     const lowerText = text.toLowerCase();
+
     knownSymptoms.forEach((symptom) => {
-      if (lowerText.includes(symptom) && !symptoms.find(s => s.name === symptom)) {
+      if (
+        lowerText.includes(symptom.toLowerCase()) &&
+        !symptoms.find((s) => s.name === symptom)
+      ) {
         detected.push(symptom);
       }
     });
 
-    if (detected.length > 0) {
-      setSymptoms([...symptoms, ...detected.map((s) => ({ name: s }))]);
-    }
+    const detectedObjs = detected.map((s) => ({ name: s }));
+    setSymptoms((prev) => [...prev, ...detectedObjs]);
   };
 
-  const handleVoiceInput = () => {
-    const recognition = new (window as any).webkitSpeechRecognition() || new (window as any).SpeechRecognition();
+  const startVoiceRecognition = () => {
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Speech Recognition API not supported in this browser.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
     recognition.lang = "en-US";
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
-    recognition.start();
-
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
-      setSymptomInput(transcript);
       extractSymptoms(transcript);
     };
 
     recognition.onerror = (event: any) => {
       console.error("Speech recognition error:", event.error);
     };
+
+    recognition.start();
+    recognitionRef.current = recognition;
   };
 
   const handleCheckSymptoms = async () => {
+    if (symptoms.length === 0) return;
+
     const symptomNames = symptoms.map((s) => s.name.toLowerCase());
+
+    const emergencySymptoms = [
+      "chest pain",
+      "shortness of breath",
+      "seizure",
+      "unconsciousness",
+    ];
+    const isEmergency = symptomNames.some((symptom) =>
+      emergencySymptoms.includes(symptom)
+    );
+
+    if (isEmergency) {
+      setResult("⚠️ Emergency detected! Seek immediate medical attention.");
+      return;
+    }
+
+    if (severity === "severe" && parseInt(duration) >= 2) {
+      setResult("⚠️ Severe symptoms for multiple days. Medical attention recommended.");
+      return;
+    }
+
     setLoading(true);
     setResult(null);
 
@@ -87,7 +137,9 @@ const SymptomChecker: React.FC = () => {
       if (data.message) {
         setResult(`🤖 ${data.message}`);
       } else {
-        const diseases = data.map((item: any) => `• ${item.disease} (score: ${item.matches})`);
+        const diseases = data.map(
+          (item: any) => `• ${item.disease} (score: ${item.matches})`
+        );
         setResult(`✅ Diseases found based on your symptoms:\n\n${diseases.join("\n")}`);
       }
     } catch (error) {
@@ -99,35 +151,24 @@ const SymptomChecker: React.FC = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 space-y-6">
-      <h1 className="text-3xl font-bold text-center">🩺 Symptom Checker</h1>
+    <div className="max-w-2xl mx-auto p-6 space-y-4">
+      <h1 className="text-2xl font-bold mb-2">🩺 Symptom Checker</h1>
 
       <div className="flex gap-2">
         <Input
           value={symptomInput}
           onChange={(e) => setSymptomInput(e.target.value)}
-          placeholder="Enter or speak a symptom"
+          placeholder="Enter a symptom"
         />
         <Button onClick={addSymptom}>Add</Button>
-        <Button variant="outline" onClick={handleVoiceInput}>🎤 Speak</Button>
+        <Button variant="outline" onClick={startVoiceRecognition}>
+          🎤 Speak
+        </Button>
       </div>
 
-      {symptoms.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-sm font-medium">Detected symptoms:</p>
-          <ul className="flex flex-wrap gap-2">
-            {symptoms.map((s, idx) => (
-              <li key={idx} className="bg-gray-100 text-sm px-3 py-1 rounded-full border">
-                {s.name}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">Severity</label>
+      <div className="flex gap-4">
+        <div className="w-1/2">
+          <label className="block text-sm font-medium">Severity</label>
           <select
             value={severity}
             onChange={(e) => setSeverity(e.target.value)}
@@ -139,31 +180,36 @@ const SymptomChecker: React.FC = () => {
           </select>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Duration (days)</label>
+        <div className="w-1/2">
+          <label className="block text-sm font-medium">Duration (in days)</label>
           <Input
             type="number"
             value={duration}
             onChange={(e) => setDuration(e.target.value)}
-            placeholder="e.g., 3"
+            placeholder="e.g., 2"
           />
         </div>
       </div>
 
-      <Button
-        className="w-full mt-4"
-        onClick={handleCheckSymptoms}
-        disabled={loading || symptoms.length === 0}
-      >
+      <Button className="mt-4" onClick={handleCheckSymptoms} disabled={loading}>
         {loading ? "Checking..." : "Check Symptoms"}
       </Button>
 
       {result && (
-        <Card className="mt-6">
-          <CardContent className="p-4 whitespace-pre-wrap leading-relaxed text-base">
-            {result}
-          </CardContent>
+        <Card className="mt-4">
+          <CardContent className="p-4 whitespace-pre-wrap">{result}</CardContent>
         </Card>
+      )}
+
+      {symptoms.length > 0 && (
+        <div className="mt-4">
+          <h2 className="text-lg font-semibold mb-1">Selected Symptoms:</h2>
+          <ul className="list-disc list-inside">
+            {symptoms.map((s, idx) => (
+              <li key={idx}>{s.name}</li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );
