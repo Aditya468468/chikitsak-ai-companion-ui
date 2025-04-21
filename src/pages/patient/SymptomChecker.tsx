@@ -4,9 +4,8 @@ import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
 
-const BACKEND_URL = "https://chikitsak-backend.onrender.com/";
+const BACKEND_URL = "https://chikitsak-backend.onrender.com/"; // Adjust this URL if needed
 
 type Symptom = { name: string };
 
@@ -30,41 +29,32 @@ const SymptomChecker: React.FC = () => {
     setLoading(true);
     setResult(null);
 
-    const emergencySymptoms = ["chest pain", "shortness of breath", "seizure", "unconsciousness"];
-    const isEmergency = symptomNames.some((symptom) =>
-      emergencySymptoms.includes(symptom)
-    );
-
-    if (isEmergency) {
-      setResult("🚨 Looks like you mentioned a critical symptom. Please seek emergency care immediately.");
-      setLoading(false);
-      return;
-    }
-
-    if (severity === "severe" && parseInt(duration) >= 2) {
-      setResult("⚠️ You've had severe symptoms for a while. It’s best to consult a doctor soon.");
-      setLoading(false);
-      return;
-    }
-
     try {
-      const response = await fetch(`${BACKEND_URL}api/symptoms/nlp`, {  // NLP endpoint
+      // Sending data to backend for NLP processing
+      const response = await fetch(`${BACKEND_URL}api/symptoms/nlp`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ symptoms: symptomNames, severity, duration }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          symptoms: symptomNames,
+          severity,
+          duration,
+        }),
       });
 
       const data = await response.json();
 
+      // Handling the backend response
       if (data.message) {
         setResult(`🤖 ${data.message}`);
       } else {
-        const diseases = data.map((item: any) => `• ${item.disease} (match score: ${item.matches})`);
-        setResult(`✅ Here's what we found based on your symptoms:\n\n${diseases.join("\n")}`);
+        const diseases = data.map((item: any) => `• ${item.disease} (score: ${item.matches})`);
+        setResult(`✅ Diseases found based on your symptoms:\n\n${diseases.join("\n")}`);
       }
     } catch (error) {
       console.error(error);
-      setResult("❌ Something went wrong. Try again later.");
+      setResult("❌ Something went wrong while processing the symptoms.");
     } finally {
       setLoading(false);
     }
@@ -78,7 +68,7 @@ const SymptomChecker: React.FC = () => {
         <Input
           value={symptomInput}
           onChange={(e) => setSymptomInput(e.target.value)}
-          placeholder="e.g. headache, fever"
+          placeholder="Enter symptom (e.g. headache)"
         />
         <Button onClick={addSymptom}>Add</Button>
       </div>
@@ -88,10 +78,7 @@ const SymptomChecker: React.FC = () => {
           <p className="text-sm font-medium">Your symptoms:</p>
           <ul className="flex flex-wrap gap-2">
             {symptoms.map((s, idx) => (
-              <li
-                key={idx}
-                className="bg-gray-100 text-sm px-3 py-1 rounded-full border"
-              >
+              <li key={idx} className="bg-gray-100 text-sm px-3 py-1 rounded-full border">
                 {s.name}
               </li>
             ))}
@@ -119,7 +106,7 @@ const SymptomChecker: React.FC = () => {
             type="number"
             value={duration}
             onChange={(e) => setDuration(e.target.value)}
-            placeholder="e.g. 3"
+            placeholder="e.g., 3"
           />
         </div>
       </div>
@@ -129,14 +116,7 @@ const SymptomChecker: React.FC = () => {
         onClick={handleCheckSymptoms}
         disabled={loading || symptoms.length === 0}
       >
-        {loading ? (
-          <>
-            <Loader2 className="animate-spin mr-2 h-4 w-4" />
-            Checking...
-          </>
-        ) : (
-          "Check Now"
-        )}
+        {loading ? "Checking..." : "Check Symptoms"}
       </Button>
 
       {result && (
